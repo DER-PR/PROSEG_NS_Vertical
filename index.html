@@ -144,6 +144,7 @@
     <!-- FICHA -->
     <section id="vFicha" class="esconde">
       <div class="cartao">
+        <button class="btn btn-sec" style="margin-bottom:14px" onclick="voltarFicha()">← Voltar sem salvar</button>
         <h2 id="fichaKm">Km --</h2>
         <p class="dica" id="fichaCod">Codigo</p>
         <div class="ctx" id="fichaCtx"></div>
@@ -183,7 +184,7 @@
         </div>
         <button class="btn btn-primario" onclick="salvarFicha(true)">Salvar e ir para a próxima</button>
         <button class="btn btn-sec" style="margin-top:8px" onclick="salvarFicha(false)">Salvar e voltar à lista</button>
-        <button class="btn" style="margin-top:8px;background:#fff;color:var(--vermelho);border:2px solid var(--vermelho)" onclick="marcarPendente()">↩ Marcar como pendente</button>
+        <button class="btn" id="btnPendente" style="margin-top:8px;background:#fff;color:var(--vermelho);border:2px solid var(--vermelho)" onclick="marcarPendente()">↩ Marcar como pendente</button>
       </div>
     </section>
 
@@ -410,9 +411,11 @@ function abrirFicha(id){
   marcaToggle("tgKm",p.kmOk);
   marcaToggle("tgPinus",p.pinus);
   setGpsBox(p.lat?(p.lat+", "+p.lng+" (±"+p.gpsAcc+" m)"):null,!!p.lat);
+  var bp=document.getElementById("btnPendente");if(bp)bp.style.display=(p.status==="medida")?"":"none";
   irPara("ficha");
   document.getElementById("hdrTitulo").textContent="Km "+(p.kmP||"--");
 }
+function voltarFicha(){sujo=false;irPara("lista");}
 function sugereFoto(){var n=placas.map(function(p){return parseInt(p.foto,10);}).filter(function(x){return !isNaN(x);});return n.length?(Math.max.apply(null,n)+1):"";}
 function setToggle(boxId,val,btn){var box=document.getElementById(boxId);Array.prototype.forEach.call(box.children,function(b){b.classList.remove("sel-sim","sel-nao");});btn.classList.add(val==="N"?"sel-nao":"sel-sim");box.dataset.val=val;marcaSujo();}
 function marcaToggle(boxId,val){var box=document.getElementById(boxId);box.dataset.val=val||"";Array.prototype.forEach.call(box.children,function(b){b.classList.remove("sel-sim","sel-nao");if(b.dataset.v===val)b.classList.add(val==="N"?"sel-nao":"sel-sim");});}
