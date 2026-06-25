@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0B6B3A">
+<link rel="manifest" href="manifest.webmanifest">
+<title>Ficha de Campo — PROSEG PARANÁ</title>
+<style>
+  :root{
+    --verde:#0B6B3A;--verde-esc:#084d2a;--verde-cl:#e6f1ea;
+    --amarelo:#F2B705;--vermelho:#C8362B;
+    --tinta:#14201a;--cinza:#677770;--cinza-cl:#e7ece9;
+    --fundo:#eef1ef;--branco:#fff;--linha:#d6ddd9;
+    --sombra:0 1px 3px rgba(8,40,24,.10),0 6px 18px rgba(8,40,24,.06);--raio:14px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:var(--fundo);color:var(--tinta);font-size:17px;line-height:1.4;-webkit-text-size-adjust:100%}
+  .app{max-width:560px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column}
+  header{background:var(--verde);color:#fff;padding:14px 16px;position:sticky;top:0;z-index:20;box-shadow:var(--sombra);display:flex;align-items:center;gap:12px}
+  header .marca{width:40px;height:40px;border:3px solid #fff;border-radius:8px;display:flex;align-items:center;justify-content:center;flex:0 0 auto;font-weight:800;font-size:13px;letter-spacing:.5px;background:var(--verde-esc)}
+  header h1{font-size:16px;margin:0;font-weight:800;letter-spacing:.2px;line-height:1.1}
+  header p{margin:2px 0 0;font-size:12px;opacity:.85;font-weight:500}
+  .progresso{background:var(--branco);padding:10px 16px;border-bottom:1px solid var(--linha);display:flex;gap:10px;align-items:center;position:sticky;top:68px;z-index:15}
+  .progresso .barra{flex:1;height:10px;background:var(--cinza-cl);border-radius:6px;overflow:hidden}
+  .progresso .barra i{display:block;height:100%;background:var(--verde);width:0;transition:width .25s}
+  .progresso .num{font-size:13px;font-weight:700;color:var(--cinza);white-space:nowrap}
+  main{flex:1;padding:16px;display:flex;flex-direction:column;gap:14px}
+  .esconde{display:none !important}
+  nav.tabs{position:sticky;bottom:0;background:var(--branco);border-top:1px solid var(--linha);display:flex;z-index:20;box-shadow:0 -2px 10px rgba(8,40,24,.05)}
+  nav.tabs button{flex:1;background:none;border:none;padding:10px 4px 12px;color:var(--cinza);font-size:11px;font-weight:700;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer}
+  nav.tabs button .ic{font-size:20px;line-height:1}
+  nav.tabs button.ativo{color:var(--verde)}
+  .cartao{background:var(--branco);border-radius:var(--raio);box-shadow:var(--sombra);padding:16px}
+  .cartao h2{margin:0 0 4px;font-size:15px;font-weight:800;letter-spacing:.2px}
+  .cartao .dica{font-size:13px;color:var(--cinza);margin:0 0 14px}
+  label.campo{display:block;font-size:13px;font-weight:700;color:var(--cinza);margin:0 0 6px;text-transform:uppercase;letter-spacing:.4px}
+  input[type=text],input[type=number],textarea{width:100%;padding:13px 14px;font-size:17px;border:1.5px solid var(--linha);border-radius:10px;background:#fbfcfb;color:var(--tinta);font-family:inherit}
+  input:focus,textarea:focus{outline:none;border-color:var(--verde);background:#fff}
+  textarea{min-height:64px;resize:vertical}
+  .grupo{margin-bottom:14px}
+  .btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:16px;font-size:17px;font-weight:800;border:none;border-radius:12px;cursor:pointer;letter-spacing:.3px}
+  .btn-primario{background:var(--verde);color:#fff}.btn-primario:active{background:var(--verde-esc)}
+  .btn-sec{background:var(--cinza-cl);color:var(--tinta)}
+  .btn-perigo{background:var(--vermelho);color:#fff}
+  .btn-linha{background:#fff;color:var(--verde);border:2px solid var(--verde)}
+  .btn:disabled{opacity:.45}
+  .toggle{display:flex;gap:10px}
+  .toggle button{flex:1;padding:16px;font-size:17px;font-weight:800;border:2px solid var(--linha);border-radius:12px;background:#fbfcfb;color:var(--cinza);cursor:pointer;letter-spacing:.3px}
+  .toggle button.sel-sim{background:var(--verde);border-color:var(--verde);color:#fff}
+  .toggle button.sel-nao{background:var(--vermelho);border-color:var(--vermelho);color:#fff}
+  .stepper{display:flex;align-items:stretch;gap:8px}
+  .stepper button{width:58px;font-size:26px;font-weight:800;border:2px solid var(--linha);background:#fbfcfb;border-radius:12px;color:var(--verde);cursor:pointer}
+  .stepper input{text-align:center;font-size:22px;font-weight:800}
+  .ctx{background:var(--verde-cl);border-radius:10px;padding:12px 14px;margin:0 0 16px;font-size:14px;line-height:1.5}
+  .ctx b{color:var(--verde-esc)}
+  .ctx .grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;margin-top:6px}
+  .placa{background:var(--branco);border-radius:var(--raio);box-shadow:var(--sombra);padding:12px 14px;display:flex;align-items:center;gap:12px;cursor:pointer;border-left:6px solid var(--amarelo);margin-bottom:10px}
+  .placa.medida{border-left-color:var(--verde)}
+  .placa .km{background:var(--verde);color:#fff;border:2.5px solid #fff;outline:2px solid var(--verde);border-radius:8px;padding:8px 6px;min-width:76px;text-align:center;flex:0 0 auto}
+  .placa-thumb{width:46px;height:46px;object-fit:contain;background:#fff;border:1px solid var(--linha);border-radius:6px;padding:2px;flex:0 0 auto}
+  .placa-thumb.vazia{background:var(--cinza-cl)}
+  .filtros{display:flex;gap:8px;margin-bottom:12px}
+  .chip{flex:1;padding:9px 6px;border:1.5px solid var(--linha);border-radius:20px;background:#fff;font-weight:700;font-size:13px;color:var(--cinza);cursor:pointer}
+  .chip.ativo{background:var(--verde);color:#fff;border-color:var(--verde)}
+  .chip b{font-weight:800}
+  .lote-lista{display:flex;flex-direction:column;gap:8px;max-height:46vh;overflow:auto;border:1px solid var(--linha);border-radius:10px;padding:8px;background:#fbfcfb}
+  .lote-row{display:flex;align-items:center;gap:10px}
+  .lote-km{flex:0 0 auto;font-weight:700;font-size:14px;min-width:118px;color:var(--tinta)}
+  .lote-alt{flex:1;padding:10px 12px !important;font-size:16px !important}
+  .placa .km b{display:block;font-size:9px;font-weight:700;letter-spacing:1px;opacity:.8}
+  .placa .km span{display:block;font-size:15px;font-weight:800;line-height:1.1}
+  .placa .info{flex:1;min-width:0}
+  .placa .info .cod{font-weight:800;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .placa .info .det{font-size:12px;color:var(--cinza);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .placa .selo{font-size:11px;font-weight:800;padding:5px 9px;border-radius:20px;flex:0 0 auto}
+  .selo.pend{background:#fdf3d3;color:#8a6d00}.selo.feito{background:var(--verde-cl);color:var(--verde)}
+  .busca{display:flex;gap:8px;margin-bottom:4px}.busca input{flex:1}
+  .gps{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--cinza);background:var(--cinza-cl);padding:10px 12px;border-radius:10px}
+  .gps.ok{background:var(--verde-cl);color:var(--verde-esc)}
+  .resumo{display:flex;gap:10px}
+  .resumo div{flex:1;background:var(--branco);border-radius:var(--raio);box-shadow:var(--sombra);padding:14px;text-align:center}
+  .resumo .n{font-size:30px;font-weight:800;line-height:1}
+  .resumo .l{font-size:12px;color:var(--cinza);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-top:4px}
+  .resumo .v-ok .n{color:var(--verde)}.resumo .v-pend .n{color:var(--amarelo)}
+  .aviso{font-size:12.5px;color:var(--cinza);background:#fffbeb;border:1px solid #f3e3a8;padding:10px 12px;border-radius:10px;line-height:1.45}
+  .toast{position:fixed;left:50%;bottom:78px;transform:translateX(-50%) translateY(20px);background:var(--tinta);color:#fff;padding:12px 18px;border-radius:30px;font-size:14px;font-weight:700;opacity:0;transition:.25s;z-index:50;pointer-events:none;box-shadow:var(--sombra);max-width:90%;text-align:center}
+  .toast.mostra{opacity:1;transform:translateX(-50%) translateY(0)}
+  .vazio{text-align:center;color:var(--cinza);padding:40px 16px;font-size:14px}
+  .placa-img{display:block;width:100%;max-height:200px;object-fit:contain;background:#fff;border:1px solid var(--linha);border-radius:8px;padding:6px;margin:0 0 10px;cursor:zoom-in}
+  #lightbox{position:fixed;inset:0;background:rgba(8,20,14,.92);display:none;align-items:center;justify-content:center;z-index:100;padding:16px}
+  #lightbox.on{display:flex}
+  #lightbox img{max-width:100%;max-height:82vh;background:#fff;border-radius:10px;padding:8px}
+  #lightbox .fechar{position:absolute;top:14px;right:16px;color:#fff;font-size:30px;font-weight:800;background:none;border:none;cursor:pointer}
+  #lightbox .leg{position:absolute;bottom:20px;left:0;right:0;text-align:center;color:#fff;font-size:13px;opacity:.85}
+  /* seletor de rodovias */
+  .rod{background:var(--branco);border-radius:var(--raio);box-shadow:var(--sombra);padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;margin-bottom:10px;border-left:6px solid var(--cinza-cl)}
+  .rod.baixada{border-left-color:var(--verde)}
+  .rod .info{flex:1;min-width:0}
+  .rod .nome{font-weight:800;font-size:17px}
+  .rod .det{font-size:12px;color:var(--cinza)}
+  .rod .selo{font-size:11px;font-weight:800;padding:5px 10px;border-radius:20px;flex:0 0 auto}
+  .rod .selo.on{background:var(--verde-cl);color:var(--verde)}
+  .rod .selo.off{background:var(--cinza-cl);color:var(--cinza)}
+  .dlbar{height:8px;background:var(--cinza-cl);border-radius:6px;overflow:hidden;margin-top:8px}
+  .dlbar i{display:block;height:100%;background:var(--verde);width:0;transition:width .2s}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="marca">DER</div>
+    <div><h1 id="hdrTitulo">PROSEG PARANÁ</h1><p id="hdrSub">Ficha de Campo · Sinalização Vertical</p></div>
+  </header>
+  <div class="progresso esconde" id="barraProg"><div class="barra"><i id="progFill"></i></div><div class="num" id="progNum">0 / 0</div></div>
+  <main>
+    <!-- SELETOR DE RODOVIAS -->
+    <section id="vRod">
+      <div class="cartao" style="margin-bottom:14px">
+        <h2>Selecione a rodovia</h2>
+        <p class="dica">As rodovias baixadas funcionam offline. Para uso em campo sem sinal, baixe na base.</p>
+        <button class="btn btn-primario" id="btnBaixarTodas" onclick="baixarTodas()">⬇ Baixar todas para uso offline</button>
+        <div class="dlbar esconde" id="dlBar"><i id="dlFill"></i></div>
+      </div>
+      <div id="listaRod"></div>
+    </section>
+
+    <!-- LISTA -->
+    <section id="vLista" class="esconde">
+      <div class="busca">
+        <input type="text" id="busca" placeholder="Buscar por Km ou código..." oninput="renderLista()">
+        <button class="btn btn-sec" style="width:auto;padding:13px 16px" onclick="document.getElementById('busca').value='';renderLista()">Limpar</button>
+      </div>
+      <div class="filtros">
+        <button class="chip ativo" data-f="todas" onclick="setFiltro('todas',this)">Todas <b id="nTodas"></b></button>
+        <button class="chip" data-f="pendente" onclick="setFiltro('pendente',this)">Pendentes <b id="nPend"></b></button>
+        <button class="chip" data-f="medida" onclick="setFiltro('medida',this)">Medidas <b id="nMed"></b></button>
+      </div>
+      <button class="btn btn-linha" style="margin-bottom:12px" onclick="irPara('lote')">⚡ Medir marcadores de alinhamento em lote</button>
+      <div id="listaPlacas"></div>
+    </section>
+
+    <!-- FICHA -->
+    <section id="vFicha" class="esconde">
+      <div class="cartao">
+        <h2 id="fichaKm">Km --</h2>
+        <p class="dica" id="fichaCod">Codigo</p>
+        <div class="ctx" id="fichaCtx"></div>
+        <div class="grupo">
+          <label class="campo">Instalada no Km correto?</label>
+          <div class="toggle" id="tgKm">
+            <button type="button" data-v="S" onclick="setToggle('tgKm','S',this)">Sim</button>
+            <button type="button" data-v="N" onclick="setToggle('tgKm','N',this)">Não</button>
+          </div>
+        </div>
+        <div class="grupo">
+          <label class="campo">Altura do suporte instalado (m)</label>
+          <div class="stepper">
+            <button type="button" onclick="ajustaAltura(-0.05)">−</button>
+            <input type="text" id="fAltura" inputmode="decimal" placeholder="0,00" oninput="marcaSujo()">
+            <button type="button" onclick="ajustaAltura(0.05)">+</button>
+          </div>
+        </div>
+        <div class="grupo">
+          <label class="campo">Casca de pinus?</label>
+          <div class="toggle" id="tgPinus">
+            <button type="button" data-v="S" onclick="setToggle('tgPinus','S',this)">Sim</button>
+            <button type="button" data-v="N" onclick="setToggle('tgPinus','N',this)">Não</button>
+          </div>
+        </div>
+        <div class="grupo">
+          <label class="campo">Nº da foto</label>
+          <input type="text" id="fFoto" inputmode="numeric" placeholder="ex.: 142" oninput="marcaSujo()">
+        </div>
+        <div class="grupo">
+          <label class="campo">Observações (opcional)</label>
+          <textarea id="fObs" placeholder="Ex.: suporte amassado, refletivo danificado..." oninput="marcaSujo()"></textarea>
+        </div>
+        <div class="grupo">
+          <div class="gps" id="gpsBox"><span id="gpsTxt">GPS não capturado</span></div>
+          <button class="btn btn-linha" style="margin-top:8px" onclick="capturaGPS()">📍 Capturar coordenada GPS</button>
+        </div>
+        <button class="btn btn-primario" onclick="salvarFicha(true)">Salvar e ir para a próxima</button>
+        <button class="btn btn-sec" style="margin-top:8px" onclick="salvarFicha(false)">Salvar e voltar à lista</button>
+        <button class="btn" style="margin-top:8px;background:#fff;color:var(--vermelho);border:2px solid var(--vermelho)" onclick="marcarPendente()">↩ Marcar como pendente</button>
+      </div>
+    </section>
+
+    <!-- LOTE -->
+    <section id="vLote" class="esconde">
+      <button class="btn btn-sec" style="margin-bottom:12px" onclick="irPara('lista')">← Voltar à lista</button>
+      <div id="loteGrupos"></div>
+    </section>
+    <section id="vLoteForm" class="esconde">
+      <div class="cartao" id="loteFormCard"></div>
+    </section>
+
+    <!-- AJUSTES -->
+    <section id="vConfig" class="esconde">
+      <div class="cartao">
+        <h2>Identificação da medição</h2>
+        <p class="dica">Rodovia atual: <b id="cfgRod">--</b></p>
+        <div class="grupo"><label class="campo">Empresa / Consórcio</label><input type="text" id="cEmpresa" oninput="salvarConfig()"></div>
+        <div class="grupo"><label class="campo">Técnico responsável</label><input type="text" id="cTecnico" placeholder="Nome do técnico" oninput="salvarConfig()"></div>
+        <div class="grupo"><label class="campo">Nº da medição</label><input type="text" id="cMedicao" inputmode="numeric" placeholder="Ex.: 03" oninput="salvarConfig()"></div>
+        <button class="btn btn-linha" onclick="trocarRodovia()">↔ Trocar de rodovia</button>
+      </div>
+      <div class="cartao">
+        <h2>Manutenção</h2>
+        <button class="btn btn-perigo" onclick="zerarMedicoes()">Limpar medições desta rodovia</button>
+      </div>
+    </section>
+
+    <!-- EXPORTAR -->
+    <section id="vExport" class="esconde">
+      <div class="resumo">
+        <div class="v-ok"><div class="n" id="rOk">0</div><div class="l">Medidas</div></div>
+        <div class="v-pend"><div class="n" id="rPend">0</div><div class="l">Pendentes</div></div>
+      </div>
+      <div class="cartao">
+        <h2>Enviar para a planilha de medição</h2>
+        <p class="dica">Gera os dados na ordem das colunas, com o <b>Km dividido em Km + Metros</b>. Copie e cole na célula <b>C9</b> — a coluna B (imagens) não é alterada.</p>
+        <button class="btn btn-primario" onclick="copiarPlanilha()">⧉ Copiar para colar na planilha (a partir de C9)</button>
+        <button class="btn btn-linha" style="margin-top:8px" onclick="baixarCSV()">⬇ Baixar CSV completo (com GPS e data)</button>
+        <button class="btn btn-sec" style="margin-top:8px" onclick="compartilhar()">↗ Enviar arquivo por WhatsApp / e-mail</button>
+      </div>
+      <div class="aviso">⚠️ Os dados ficam salvos neste aparelho. Exporte ao fim de cada trecho ou dia. Internet só é necessária para baixar rodovias e enviar o arquivo final.</div>
+    </section>
+  </main>
+  <nav class="tabs esconde" id="navTabs">
+    <button id="tLista" class="ativo" onclick="irPara('lista')"><span class="ic">📋</span>Placas</button>
+    <button id="tExport" onclick="irPara('export')"><span class="ic">⬇</span>Exportar</button>
+    <button id="tConfig" onclick="irPara('config')"><span class="ic">⚙️</span>Ajustes</button>
+  </nav>
+</div>
+<div id="lightbox" onclick="fecharZoom()"><button class="fechar" onclick="fecharZoom()">×</button><img id="lbImg" src="" alt="Projeto da placa"><div class="leg">Toque para fechar</div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+
+/* ====== IndexedDB ====== */
+var DB=null;
+function idbOpen(){return new Promise(function(res,rej){var r=indexedDB.open("proseg",1);
+  r.onupgradeneeded=function(e){var db=e.target.result;
+    if(!db.objectStoreNames.contains("ref"))db.createObjectStore("ref");
+    if(!db.objectStoreNames.contains("trab"))db.createObjectStore("trab");
+    if(!db.objectStoreNames.contains("meta"))db.createObjectStore("meta");};
+  r.onsuccess=function(){res(r.result);};r.onerror=function(){rej(r.error);};});}
+function idbGet(store,key){return new Promise(function(res){try{var t=DB.transaction(store,"readonly").objectStore(store).get(key);t.onsuccess=function(){res(t.result);};t.onerror=function(){res(null);};}catch(e){res(null);}});}
+function idbPut(store,key,val){return new Promise(function(res){try{var t=DB.transaction(store,"readwrite").objectStore(store).put(val,key);t.onsuccess=function(){res(true);};t.onerror=function(){res(false);};}catch(e){res(false);}});}
+function idbKeys(store){return new Promise(function(res){try{var ks=[],t=DB.transaction(store,"readonly").objectStore(store).openCursor();t.onsuccess=function(e){var c=e.target.result;if(c){ks.push(c.key);c.continue();}else res(ks);};t.onerror=function(){res(ks);};}catch(e){res([]);}});}
+
+/* ====== Estado ====== */
+var manifest=[], rodAtual=null, placas=[], IMGS=[], cfg={empresa:"",tecnico:"",medicao:""};
+var atual=null, sujo=false, gpsTmp=null, atualGrupo=[], vAtual="rod", filtroStatus="todas";
+
+function novaLista(arr){return arr.map(function(d,i){return{
+  id:"p"+i, imgIdx:i, cod:d.cod, kmP:d.kmP, sup:d.sup, qtd:d.qtd, larg:d.larg, altP:d.altP, area:d.area,
+  status:"pendente", kmOk:"", altura:"", pinus:"", foto:"", obs:"", lat:"",lng:"",gpsAcc:"", dataHora:""
+};});}
+function persist(){ if(DB&&rodAtual) idbPut("trab",rodAtual,placas); }
+
+/* ====== Inicialização ====== */
+async function init(){
+  try{ DB=await idbOpen(); }catch(e){ DB=null; }
+  if(DB){ var c=await idbGet("meta","cfg"); if(c) cfg=c; }
+  manifest=await carregaManifest();
+  mostraRodovias();
+}
+async function carregaManifest(){
+  try{
+    var r=await fetch("rodovias.json?ts="+Date.now());
+    if(!r.ok) throw 0;
+    var m=await r.json();
+    if(DB) await idbPut("meta","manifest",m);
+    return m;
+  }catch(e){
+    if(DB){ var m=await idbGet("meta","manifest"); if(m) return m; }
+    return [];
+  }
+}
+
+/* ====== Seletor de rodovias ====== */
+async function mostraRodovias(){
+  esconderTudo(); document.getElementById("vRod").classList.remove("esconde");
+  document.getElementById("navTabs").classList.add("esconde");
+  document.getElementById("barraProg").classList.add("esconde");
+  document.getElementById("hdrTitulo").textContent="PROSEG PARANÁ";
+  document.getElementById("hdrSub").textContent="Selecione a rodovia";
+  vAtual="rod"; rodAtual=null;
+  var baixadas = DB? await idbKeys("ref") : [];
+  var alvo=document.getElementById("listaRod");
+  if(!manifest.length){ alvo.innerHTML='<div class="vazio">Não foi possível carregar a lista de rodovias. Conecte-se à internet uma vez para baixá-la.</div>'; return; }
+  alvo.innerHTML=manifest.map(function(it){
+    var on=baixadas.indexOf(it.codigo)>=0;
+    return '<div class="rod '+(on?"baixada":"")+'" onclick="abrirRodovia(\''+it.codigo+'\')">'+
+      '<div class="info"><div class="nome">'+esc(it.nome||it.codigo)+'</div><div class="det">'+(it.placas||"?")+' placas</div></div>'+
+      '<div class="selo '+(on?"on":"off")+'">'+(on?"OFFLINE ✓":"BAIXAR")+'</div></div>';
+  }).join("");
+}
+async function abrirRodovia(cod){
+  var ref = DB? await idbGet("ref",cod) : null;
+  if(!ref){
+    var it=manifest.find(function(x){return x.codigo===cod;});
+    if(!it){ toast("Rodovia não encontrada"); return; }
+    toast("Baixando "+cod+"...");
+    try{
+      var r=await fetch(it.arquivo+"?ts="+Date.now()); if(!r.ok) throw 0;
+      ref=await r.json();
+      if(DB) await idbPut("ref",cod,ref);
+    }catch(e){ toast("Sem conexão. Baixe esta rodovia na base, com internet."); return; }
+  }
+  IMGS = ref.imgs||[];
+  var trab = DB? await idbGet("trab",cod) : null;
+  if(!trab || !trab.length){ trab=novaLista(ref.placas||[]); if(DB) await idbPut("trab",cod,trab); }
+  placas=trab; rodAtual=cod; cfg.rodovia=cod;
+  document.getElementById("barraProg").classList.remove("esconde");
+  document.getElementById("navTabs").classList.remove("esconde");
+  irPara("lista");
+}
+function trocarRodovia(){ persist(); mostraRodovias(); }
+
+async function baixarTodas(){
+  if(!manifest.length){ toast("Lista de rodovias indisponível"); return; }
+  var btn=document.getElementById("btnBaixarTodas"); btn.disabled=true;
+  var bar=document.getElementById("dlBar"), fill=document.getElementById("dlFill"); bar.classList.remove("esconde");
+  var ok=0;
+  for(var i=0;i<manifest.length;i++){
+    var it=manifest[i];
+    var have = DB? await idbGet("ref",it.codigo) : null;
+    if(!have){
+      try{ var r=await fetch(it.arquivo+"?ts="+Date.now()); if(!r.ok) throw 0; var d=await r.json(); if(DB) await idbPut("ref",it.codigo,d); }
+      catch(e){ /* segue */ }
+    }
+    var temAgora = DB? await idbGet("ref",it.codigo) : null; if(temAgora) ok++;
+    fill.style.width=Math.round((i+1)/manifest.length*100)+"%";
+  }
+  btn.disabled=false;
+  toast(ok+" de "+manifest.length+" rodovias salvas offline");
+  mostraRodovias();
+}
+
+/* ====== Navegação interna ====== */
+function esconderTudo(){ ["Rod","Lista","Ficha","Config","Export","Lote","LoteForm"].forEach(function(s){document.getElementById("v"+s).classList.add("esconde");}); }
+function irPara(v){
+  if(vAtual==="ficha" && v!=="ficha" && sujo){ if(!confirm("Há alterações não salvas. Sair sem salvar?")) return; sujo=false; }
+  esconderTudo();
+  ["tLista","tExport","tConfig"].forEach(function(t){document.getElementById(t).classList.remove("ativo");});
+  var titulo=rodAtual||"PROSEG";
+  if(v==="lista"){document.getElementById("vLista").classList.remove("esconde");document.getElementById("tLista").classList.add("ativo");renderLista();}
+  if(v==="export"){document.getElementById("vExport").classList.remove("esconde");document.getElementById("tExport").classList.add("ativo");renderResumo();titulo="Exportar";}
+  if(v==="config"){document.getElementById("vConfig").classList.remove("esconde");document.getElementById("tConfig").classList.add("ativo");document.getElementById("cfgRod").textContent=rodAtual||"--";document.getElementById("cEmpresa").value=cfg.empresa||"";document.getElementById("cTecnico").value=cfg.tecnico||"";document.getElementById("cMedicao").value=cfg.medicao||"";titulo="Ajustes";}
+  if(v==="ficha"){document.getElementById("vFicha").classList.remove("esconde");}
+  if(v==="lote"){document.getElementById("vLote").classList.remove("esconde");document.getElementById("tLista").classList.add("ativo");renderLote();titulo="Marcadores em lote";}
+  if(v==="loteForm"){document.getElementById("vLoteForm").classList.remove("esconde");document.getElementById("tLista").classList.add("ativo");titulo="Lote de marcadores";}
+  document.getElementById("hdrTitulo").textContent=titulo;
+  document.getElementById("hdrSub").textContent="Sinalização Vertical · "+(rodAtual||"");
+  atualizaProg();
+  vAtual=v;
+}
+
+/* ====== Lista ====== */
+function renderLista(){
+  var bel=document.getElementById("busca");var q=bel?(bel.value||"").toLowerCase().trim():"";
+  var alvo=document.getElementById("listaPlacas");
+  var lista=placas.filter(function(p){
+    var okq=!q||(p.kmP||"").toLowerCase().indexOf(q)>=0||(p.cod||"").toLowerCase().indexOf(q)>=0;
+    var oks=filtroStatus==="todas"||(filtroStatus==="medida"?p.status==="medida":p.status!=="medida");
+    return okq&&oks;
+  });
+  var tt=placas.length,ff=placas.filter(function(p){return p.status==="medida";}).length;
+  var et=document.getElementById("nTodas");if(et){et.textContent="("+tt+")";document.getElementById("nMed").textContent="("+ff+")";document.getElementById("nPend").textContent="("+(tt-ff)+")";}
+  if(!placas.length){alvo.innerHTML='<div class="vazio">Nenhuma placa nesta rodovia.</div>';atualizaProg();return;}
+  if(!lista.length){alvo.innerHTML='<div class="vazio">Nada encontrado.</div>';return;}
+  alvo.innerHTML=lista.map(function(p){
+    var f=p.status==="medida";
+    var ix=(p.imgIdx!=null?p.imgIdx:parseInt(String(p.id).slice(1),10));
+    var thumb=(ix>=0&&IMGS[ix])?'<img class="placa-thumb" src="'+IMGS[ix]+'" alt="">':'<div class="placa-thumb vazia"></div>';
+    return '<div class="placa '+(f?"medida":"")+'" onclick="abrirFicha(\''+p.id+'\')">'+
+      thumb+
+      '<div class="km"><b>KM</b><span>'+esc(p.kmP||"--")+'</span></div>'+
+      '<div class="info"><div class="cod">'+esc(p.cod||"Sem código")+'</div>'+
+      '<div class="det">'+(f?("Alt "+(p.altura||"--")+" m · Pinus "+(p.pinus||"--")+" · Foto "+(p.foto||"--")):esc(resumoSup(p.sup))) +'</div></div>'+
+      '<div class="selo '+(f?"feito":"pend")+'">'+(f?"MEDIDA":"PENDENTE")+'</div></div>';
+  }).join("");
+  atualizaProg();
+}
+function resumoSup(s){s=s||"";var m=s.match(/h=[\d,\.]+m/i);return (s.indexOf("Metálico")>=0?"Metálico ":"Polimérico ")+(m?m[0]:"");}
+function atualizaProg(){var t=placas.length,f=placas.filter(function(p){return p.status==="medida";}).length;var pct=t?Math.round(f/t*100):0;document.getElementById("progNum").textContent=f+" / "+t+" · "+pct+"%";document.getElementById("progFill").style.width=pct+"%";}
+function setFiltro(f,btn){filtroStatus=f;Array.prototype.forEach.call(document.querySelectorAll(".filtros .chip"),function(c){c.classList.remove("ativo");});btn.classList.add("ativo");renderLista();}
+
+/* ====== Ficha ====== */
+function abrirFicha(id){
+  atual=id;sujo=false;gpsTmp=null;
+  var p=placas.find(function(x){return x.id===id;});if(!p)return;
+  document.getElementById("fichaKm").textContent="Km "+(p.kmP||"--");
+  document.getElementById("fichaCod").textContent=p.cod||"Sem código";
+  var _ix=(p.imgIdx!=null?p.imgIdx:parseInt(String(p.id).slice(1),10));
+  var _img=(_ix>=0 && IMGS[_ix])?IMGS[_ix]:"";
+  document.getElementById("fichaCtx").innerHTML=
+    (_img?'<img class="placa-img" src="'+_img+'" onclick="zoom('+_ix+')" alt="Projeto da placa">':'')+
+    "<b>Projeto:</b> "+esc(p.sup||"--")+
+    '<div class="grid"><span>Qtde: <b>'+esc(p.qtd||"--")+'</b></span><span>Área: <b>'+esc(p.area||"--")+'</b> m²</span>'+
+    '<span>Dim.: <b>'+esc(p.larg||"--")+' × '+esc(p.altP||"--")+'</b> m</span></div>';
+  document.getElementById("fAltura").value=p.altura||"";
+  document.getElementById("fFoto").value=p.foto||sugereFoto();
+  document.getElementById("fObs").value=p.obs||"";
+  marcaToggle("tgKm",p.kmOk);
+  marcaToggle("tgPinus",p.pinus);
+  setGpsBox(p.lat?(p.lat+", "+p.lng+" (±"+p.gpsAcc+" m)"):null,!!p.lat);
+  irPara("ficha");
+  document.getElementById("hdrTitulo").textContent="Km "+(p.kmP||"--");
+}
+function sugereFoto(){var n=placas.map(function(p){return parseInt(p.foto,10);}).filter(function(x){return !isNaN(x);});return n.length?(Math.max.apply(null,n)+1):"";}
+function setToggle(boxId,val,btn){var box=document.getElementById(boxId);Array.prototype.forEach.call(box.children,function(b){b.classList.remove("sel-sim","sel-nao");});btn.classList.add(val==="N"?"sel-nao":"sel-sim");box.dataset.val=val;marcaSujo();}
+function marcaToggle(boxId,val){var box=document.getElementById(boxId);box.dataset.val=val||"";Array.prototype.forEach.call(box.children,function(b){b.classList.remove("sel-sim","sel-nao");if(b.dataset.v===val)b.classList.add(val==="N"?"sel-nao":"sel-sim");});}
+function ajustaAltura(d){var el=document.getElementById("fAltura");var v=parseFloat((el.value||"0").replace(",","."));if(isNaN(v))v=0;v=Math.max(0,Math.round((v+d)*100)/100);el.value=v.toFixed(2).replace(".",",");marcaSujo();}
+function marcaSujo(){sujo=true;}
+function salvarFicha(prox){
+  var p=placas.find(function(x){return x.id===atual;});if(!p)return;
+  p.kmOk=document.getElementById("tgKm").dataset.val||"";
+  p.pinus=document.getElementById("tgPinus").dataset.val||"";
+  p.altura=(document.getElementById("fAltura").value||"").replace(".",",").trim();
+  p.foto=document.getElementById("fFoto").value.trim();
+  p.obs=document.getElementById("fObs").value.trim();
+  if(gpsTmp){p.lat=gpsTmp.lat;p.lng=gpsTmp.lng;p.gpsAcc=gpsTmp.acc;}
+  p.dataHora=new Date().toLocaleString("pt-BR");
+  p.status="medida";
+  persist();sujo=false;
+  if(prox){var pend=placas.filter(function(x){return x.status!=="medida";});if(pend.length){toast("Salvo. Próxima →");abrirFicha(pend[0].id);return;}toast("Tudo medido! 🎉");irPara("lista");return;}
+  toast("Placa salva ✓");irPara("lista");
+}
+function marcarPendente(){var p=placas.find(function(x){return x.id===atual;});if(!p)return;if(p.status!=="medida"){toast("Esta placa já está pendente");return;}p.status="pendente";persist();sujo=false;toast("Marcada como pendente ✓");irPara("lista");}
+
+/* ====== GPS ====== */
+function capturaGPS(){
+  if(!navigator.geolocation){toast("GPS indisponível");return;}
+  setGpsBox("Capturando...",false);
+  navigator.geolocation.getCurrentPosition(function(pos){
+    var la=pos.coords.latitude.toFixed(6),lo=pos.coords.longitude.toFixed(6),ac=Math.round(pos.coords.accuracy);
+    gpsTmp={lat:la,lng:lo,acc:ac};sujo=true;setGpsBox(la+", "+lo+" (±"+ac+" m)",true);
+  },function(){setGpsBox("Falha no GPS — verifique a permissão de localização",false);},{enableHighAccuracy:true,timeout:15000,maximumAge:0});
+}
+function setGpsBox(txt,ok){var box=document.getElementById("gpsBox");document.getElementById("gpsTxt").innerHTML=txt?("📍 <b>"+esc(txt)+"</b>"):"GPS não capturado";box.classList.toggle("ok",!!ok);}
+
+/* ====== Config ====== */
+function salvarConfig(){cfg.empresa=document.getElementById("cEmpresa").value;cfg.tecnico=document.getElementById("cTecnico").value;cfg.medicao=document.getElementById("cMedicao").value;if(DB)idbPut("meta","cfg",cfg);}
+function zerarMedicoes(){if(!confirm("Apagar todas as MEDIÇÕES desta rodovia, mantendo a lista?"))return;placas.forEach(function(p){p.status="pendente";p.kmOk="";p.altura="";p.pinus="";p.foto="";p.obs="";p.lat="";p.lng="";p.gpsAcc="";p.dataHora="";});persist();toast("Medições zeradas");irPara("lista");}
+
+/* ====== Lote: marcadores de alinhamento ====== */
+function kmM(s){var p=(s||"").trim().split("+");var a=parseFloat(p[0])||0;var b=parseFloat((p[1]||"0").replace(",","."))||0;return a*1000+b;}
+function gruposMarcadores(){var ms=placas.filter(function(p){return /^PSMA/i.test(p.cod||"");});ms.sort(function(a,b){return kmM(a.kmP)-kmM(b.kmP);});var g=[],cur=null,prev=null;ms.forEach(function(p){var m=kmM(p.kmP);if(prev===null||m-prev>300){cur={itens:[]};g.push(cur);}cur.itens.push(p);prev=m;});return g;}
+function renderLote(){
+  var g=gruposMarcadores(),alvo=document.getElementById("loteGrupos");
+  if(!g.length){alvo.innerHTML='<div class="vazio">Nenhum marcador de alinhamento (PSMA) nesta rodovia.</div>';return;}
+  alvo.innerHTML=g.map(function(gr,i){var med=gr.itens.filter(function(p){return p.status==="medida";}).length;var a=gr.itens[0].kmP,b=gr.itens[gr.itens.length-1].kmP;
+    return '<div class="placa" onclick="openGrupo('+i+')"><div class="info"><div class="cod">Curva '+(i+1)+' · km '+esc(a)+' a '+esc(b)+'</div><div class="det">'+gr.itens.length+' marcadores · '+esc(gr.itens[0].cod)+'</div></div><div class="selo '+(med===gr.itens.length?"feito":"pend")+'">'+med+'/'+gr.itens.length+'</div></div>';}).join("");
+}
+function openGrupo(i){var g=gruposMarcadores(),gr=g[i];if(!gr)return;atualGrupo=gr.itens.map(function(p){return p.id;});renderLoteForm(gr,i);irPara("loteForm");}
+function splitFoto(s,idx){if(!s)return"";var p=(""+s).split("/");return (p[idx]||"").trim();}
+function renderLoteForm(gr,i){
+  var a=gr.itens[0].kmP,b=gr.itens[gr.itens.length-1].kmP,f0=gr.itens[0];
+  var rows=gr.itens.map(function(p){return '<div class="lote-row"><span class="lote-km">km '+esc(p.kmP)+'</span><input type="text" inputmode="decimal" id="la_'+p.id+'" class="lote-alt" placeholder="altura (m)" value="'+esc(p.altura||"")+'"></div>';}).join("");
+  document.getElementById("loteFormCard").innerHTML=
+    '<button class="btn btn-sec" style="margin-bottom:14px" onclick="sujo=false;irPara(\'lote\')">← Voltar</button>'+
+    '<h2>Marcadores · curva '+(i+1)+'</h2>'+
+    '<p class="dica">km '+esc(a)+' a '+esc(b)+' · '+gr.itens.length+' marcadores. Defina os itens comuns e digite a altura só nos que mediu.</p>'+
+    '<div class="grupo"><label class="campo">Todas instaladas no Km correto?</label><div class="toggle" id="lgKm"><button type="button" data-v="S" onclick="setToggle(\'lgKm\',\'S\',this)">Sim</button><button type="button" data-v="N" onclick="setToggle(\'lgKm\',\'N\',this)">Não</button></div></div>'+
+    '<div class="grupo"><label class="campo">Casca de pinus (todas)</label><div class="toggle" id="lgPinus"><button type="button" data-v="S" onclick="setToggle(\'lgPinus\',\'S\',this)">Sim</button><button type="button" data-v="N" onclick="setToggle(\'lgPinus\',\'N\',this)">Não</button></div></div>'+
+    '<div class="grupo"><label class="campo">Fotos do grupo (2)</label><div style="display:flex;gap:8px"><input type="text" inputmode="numeric" id="lFoto1" placeholder="Foto 1" value="'+esc(splitFoto(f0.foto,0))+'"><input type="text" inputmode="numeric" id="lFoto2" placeholder="Foto 2" value="'+esc(splitFoto(f0.foto,1))+'"></div></div>'+
+    '<label class="campo">Altura por marcador (m)</label>'+
+    '<div class="lote-lista">'+rows+'</div>'+
+    '<button class="btn btn-primario" style="margin-top:14px" onclick="salvarLote()">Salvar lote ('+gr.itens.length+')</button>';
+  marcaToggle("lgKm", f0.kmOk||"S");
+  marcaToggle("lgPinus", f0.pinus||"");
+  sujo=false;
+}
+function salvarLote(){
+  var km=document.getElementById("lgKm").dataset.val||"S";
+  var pin=document.getElementById("lgPinus").dataset.val||"";
+  var f1=document.getElementById("lFoto1").value.trim(),f2=document.getElementById("lFoto2").value.trim();
+  var foto=[f1,f2].filter(Boolean).join(" / ");
+  var agora=new Date().toLocaleString("pt-BR");
+  atualGrupo.forEach(function(id){var p=placas.find(function(x){return x.id===id;});if(!p)return;var alt=document.getElementById("la_"+id);if(alt)p.altura=(alt.value||"").replace(".",",").trim();p.kmOk=km;p.pinus=pin;p.foto=foto;p.status="medida";p.dataHora=agora;});
+  persist();sujo=false;toast(atualGrupo.length+" marcadores salvos ✓");irPara("lote");
+}
+
+/* ====== Exportação ====== */
+function renderResumo(){document.getElementById("rOk").textContent=placas.filter(function(p){return p.status==="medida";}).length;document.getElementById("rPend").textContent=placas.filter(function(p){return p.status!=="medida";}).length;}
+function splitKm(s){s=(s||"").trim();var p=s.split("+");var km=p[0]||"";var m=(p.length>1?p[1]:"").split(",")[0].trim();return[km,m];}
+var COLS_PLAN=["Código","Medição","Km","Metros","Km Instalado (S/N)","Suporte (Tipo)","Qtde (un.)","Casca de Pinus (S/N)","Altura Suporte Instalado (m)","Largura","Altura","Área (m²)","Foto"];
+function linhaPlan(p){var med=p.status==="medida";var k=(p.kmOk==="N")?["",""]:splitKm(p.kmP);return[p.cod, med?(cfg.medicao||""):"", k[0], k[1], med?p.kmOk:"", p.sup, p.qtd, med?p.pinus:"", med?p.altura:"", p.larg, p.altP, p.area, med?p.foto:""];}
+function copiarPlanilha(){var txt=placas.map(function(p){return linhaPlan(p).map(function(v){return v==null?"":(""+v);}).join("\t");}).join("\n");copiar(txt, placas.length+" linhas copiadas — cole na célula C9 da planilha");}
+var COLS_CSV=COLS_PLAN.concat(["Rodovia","Empresa","Técnico","Data/Hora","Latitude","Longitude","Precisão GPS (m)","Observações"]);
+function linhaCSV(p){return linhaPlan(p).concat([rodAtual||"",cfg.empresa||"",cfg.tecnico||"",p.dataHora||"",p.lat||"",p.lng||"",p.gpsAcc||"",p.obs||""]);}
+function montaCSV(){var c=";";var h=COLS_CSV.join(c);var corpo=placas.filter(function(p){return p.status==="medida";}).map(function(p){return linhaCSV(p).map(campoCSV).join(c);}).join("\r\n");return "\uFEFF"+h+"\r\n"+corpo;}
+function campoCSV(v){v=(v==null?"":""+v);if(/[";\n]/.test(v))v='"'+v.replace(/"/g,'""')+'"';return v;}
+function nomeArq(){var d=new Date(),z=function(n){return(n<10?"0":"")+n;};return (rodAtual||"medicao").replace(/[^\w-]/g,"_")+"_vertical_"+(cfg.medicao?("med"+cfg.medicao+"_"):"")+d.getFullYear()+z(d.getMonth()+1)+z(d.getDate())+".csv";}
+function nMedidas(){return placas.filter(function(p){return p.status==="medida";}).length;}
+function baixarCSV(){if(!nMedidas()){toast("Nenhuma placa medida ainda");return;}var blob=new Blob([montaCSV()],{type:"text/csv;charset=utf-8;"});var url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=nomeArq();document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(function(){URL.revokeObjectURL(url);},1500);toast(nMedidas()+" registro(s) exportado(s)");}
+async function compartilhar(){if(!nMedidas()){toast("Nenhuma placa medida ainda");return;}var blob=new Blob([montaCSV()],{type:"text/csv"});var file=new File([blob],nomeArq(),{type:"text/csv"});try{if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:"Medição "+rodAtual,text:"Medição PROSEG "+rodAtual});return;}}catch(e){}baixarCSV();toast("Compartilhamento indisponível — arquivo baixado");}
+function copiar(txt,msg){if(navigator.clipboard){navigator.clipboard.writeText(txt).then(function(){toast(msg);},function(){copiaFB(txt,msg);});}else copiaFB(txt,msg);}
+function copiaFB(txt,msg){var ta=document.createElement("textarea");ta.value=txt;document.body.appendChild(ta);ta.select();try{document.execCommand("copy");toast(msg);}catch(e){toast("Não foi possível copiar");}document.body.removeChild(ta);}
+
+/* ====== Zoom / util ====== */
+function zoom(ix){if(!(IMGS[ix]))return;document.getElementById("lbImg").src=IMGS[ix];document.getElementById("lightbox").classList.add("on");}
+function fecharZoom(){document.getElementById("lightbox").classList.remove("on");}
+function esc(s){return (""+s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+var toastT;function toast(m){var t=document.getElementById("toast");t.textContent=m;t.classList.add("mostra");clearTimeout(toastT);toastT=setTimeout(function(){t.classList.remove("mostra");},2400);}
+
+/* ====== Service worker + start ====== */
+if("serviceWorker" in navigator){ window.addEventListener("load",function(){ navigator.serviceWorker.register("sw.js").catch(function(){}); }); }
+init();
+</script>
+</body>
+</html>

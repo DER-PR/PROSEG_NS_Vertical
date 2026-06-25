@@ -1,0 +1,11 @@
+{
+  "name": "Ficha de Campo PROSEG",
+  "short_name": "PROSEG",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0B6B3A",
+  "theme_color": "#0B6B3A",
+  "lang": "pt-BR"
+}
