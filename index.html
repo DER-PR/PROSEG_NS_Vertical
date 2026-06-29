@@ -115,6 +115,9 @@
   .retro-leituras .lt input{padding:11px;font-size:16px;margin:0}
   .badge-r{display:inline-flex;align-items:center;justify-content:center;width:21px;height:21px;border-radius:50%;background:var(--amarelo);color:#5a4a00;font-size:12px;font-weight:800;margin-left:6px;flex:0 0 auto}
   .btn-retro{background:#fff;color:var(--verde);border:2px solid var(--verde);margin-top:4px}
+  .placa .selo{white-space:nowrap}
+  .selo.retro{background:var(--verde-esc);color:#fff}
+  .selo.retropend{background:#8a6d00;color:#fff}
 </style>
 </head>
 <body>
@@ -407,12 +410,15 @@ function renderLista(){
     var f=p.status==="medida";
     var ix=(p.imgIdx!=null?p.imgIdx:parseInt(String(p.id).slice(1),10));
     var thumb=(ix>=0&&IMGS[ix])?'<img class="placa-thumb" src="'+IMGS[ix]+'" alt="">':'<div class="placa-thumb vazia"></div>';
+    var temR=temRetro(p);
+    var seloCls = !f ? (temR?"retropend":"pend") : (temR?"retro":"feito");
+    var seloTxt = !f ? (temR?"PEND. + RETRO":"PENDENTE") : (temR?"MEDIDA + RETRO":"MEDIDA");
     return '<div class="placa '+(f?"medida":"")+'" onclick="abrirFicha(\''+p.id+'\')">'+
       thumb+
       '<div class="km"><b>KM</b><span>'+esc(p.kmP||"--")+'</span></div>'+
-      '<div class="info"><div class="cod">'+esc(p.cod||"Sem código")+(temRetro(p)?'<span class="badge-r" title="Ensaio de retro registrado">R</span>':'')+'</div>'+
+      '<div class="info"><div class="cod">'+esc(p.cod||"Sem código")+'</div>'+
       '<div class="det">'+(f?("Alt "+(p.altura||"--")+" m · Pinus "+(p.pinus||"--")+" · Foto "+(p.foto||"--")):esc(resumoSup(p.sup))) +'</div></div>'+
-      '<div class="selo '+(f?"feito":"pend")+'">'+(f?"MEDIDA":"PENDENTE")+'</div></div>';
+      '<div class="selo '+seloCls+'">'+seloTxt+'</div></div>';
   }).join("");
   atualizaProg();
 }
