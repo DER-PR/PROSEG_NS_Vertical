@@ -154,6 +154,7 @@
         <button class="chip" data-f="medida" onclick="setFiltro('medida',this)">Medidas <b id="nMed"></b></button>
       </div>
       <button class="btn btn-linha" style="margin-bottom:12px" onclick="irPara('lote')">⚡ Medir marcadores de alinhamento em lote</button>
+      <button class="btn btn-linha" style="margin-bottom:12px;color:var(--vermelho);border-color:var(--vermelho)" onclick="limparFotosRodovia()">🔄 Recomeçar numeração de fotos</button>
       <div id="listaPlacas"></div>
     </section>
 
@@ -656,12 +657,20 @@ function baixaFoto(blob,nome){var url=URL.createObjectURL(blob),a=document.creat
 function mostraPrevFoto(){var p=placas.find(function(x){return x.id===atual;});var el=document.getElementById("fFotoPrev");if(!el)return;if(p&&p.fotoThumb){el.innerHTML='<img src="'+p.fotoThumb+'" style="margin-top:10px;max-width:170px;border-radius:8px;border:2px solid var(--linha);display:block"><div class="dica" style="margin-top:4px">Foto registrada'+(p.fotoGps?" · georreferenciada ("+esc(p.fotoGps)+")":" · sem GPS")+'</div><button class="btn" style="margin-top:8px;background:#fff;color:var(--vermelho);border:2px solid var(--vermelho)" onclick="apagarFoto()">🗑 Apagar foto</button>';}else{el.innerHTML="";}}
 function apagarFoto(){
   var p=placas.find(function(x){return x.id===atual;}); if(!p)return;
-  if(!p.fotoThumb){toast("Esta placa não tem foto");return;}
+  if(!p.fotoThumb && !(p.foto||"").toString().trim()){toast("Esta placa não tem foto");return;}
   if(!confirm("Apagar a foto desta placa? A imagem já salva na galeria não é afetada.")) return;
-  p.fotoThumb=""; p.fotoGps="";
+  p.fotoThumb=""; p.fotoGps=""; p.foto="";
   persist(); sujo=true;
+  document.getElementById("fFoto").value=sugereFoto();
   mostraPrevFoto();
   toast("Foto removida do app ✓");
+}
+function limparFotosRodovia(){
+  if(!confirm("Recomeçar a numeração de fotos desta rodovia? Isto apaga os números de índice e as miniaturas de TODAS as placas desta rodovia (as imagens já salvas na galeria não são afetadas). As medições não são alteradas.")) return;
+  placas.forEach(function(p){p.foto="";p.fotoThumb="";p.fotoGps="";});
+  persist();
+  toast("Numeração de fotos reiniciada — próxima começa em 1");
+  renderLista();
 }
 function setToggle(boxId,val,btn){var box=document.getElementById(boxId);Array.prototype.forEach.call(box.children,function(b){b.classList.remove("sel-sim","sel-nao");});btn.classList.add(val==="N"?"sel-nao":"sel-sim");box.dataset.val=val;marcaSujo();}
 function marcaToggle(boxId,val){var box=document.getElementById(boxId);box.dataset.val=val||"";Array.prototype.forEach.call(box.children,function(b){b.classList.remove("sel-sim","sel-nao");if(b.dataset.v===val)b.classList.add(val==="N"?"sel-nao":"sel-sim");});}
