@@ -154,7 +154,6 @@
         <button class="chip" data-f="medida" onclick="setFiltro('medida',this)">Medidas <b id="nMed"></b></button>
       </div>
       <button class="btn btn-linha" style="margin-bottom:12px" onclick="irPara('lote')">⚡ Medir marcadores de alinhamento em lote</button>
-      <button class="btn btn-linha" style="margin-bottom:12px;color:var(--vermelho);border-color:var(--vermelho)" onclick="limparFotosRodovia()">🔄 Recomeçar numeração de fotos</button>
       <div id="listaPlacas"></div>
     </section>
 
@@ -690,7 +689,7 @@ function salvarFicha(prox){
   if(prox){var pend=placas.filter(function(x){return x.status!=="medida";});if(pend.length){toast("Salvo. Próxima →");abrirFicha(pend[0].id);return;}toast("Tudo medido! 🎉");irPara("lista");return;}
   toast("Placa salva ✓");irPara("lista");
 }
-function marcarPendente(){var p=placas.find(function(x){return x.id===atual;});if(!p)return;if(p.status!=="medida"){toast("Esta placa já está pendente");return;}p.status="pendente";persist();sujo=false;toast("Marcada como pendente ✓");irPara("lista");}
+function marcarPendente(){var p=placas.find(function(x){return x.id===atual;});if(!p)return;if(p.status!=="medida"){toast("Esta placa já está pendente");return;}p.status="pendente";p.kmOk="";p.altura="";p.pinus="";persist();sujo=false;toast("Marcada como pendente ✓");irPara("lista");}
 
 /* ====== GPS ====== */
 function capturaGPS(){
