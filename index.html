@@ -572,7 +572,7 @@ function salvarRetro(){
   esconderTudo(); document.getElementById("vFicha").classList.remove("esconde"); vAtual="ficha";
   document.getElementById("hdrTitulo").textContent="Km "+(p.kmP||"--");
 }
-function sugereFoto(){var n=placas.map(function(p){return parseInt(p.foto,10);}).filter(function(x){return !isNaN(x);});return n.length?(Math.max.apply(null,n)+1):"";}
+function sugereFoto(){var n=placas.map(function(p){return parseInt(p.foto,10);}).filter(function(x){return !isNaN(x);});return n.length?(Math.max.apply(null,n)+1):1;}
 
 /* ====== Foto georreferenciada ====== */
 var fotoGps=null;
@@ -653,7 +653,16 @@ function compartilhaFoto(dataURL,nome){
   }else{ baixaFoto(blob,nome); }
 }
 function baixaFoto(blob,nome){var url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=nome;document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(function(){URL.revokeObjectURL(url);},1500);toast("Foto salva nos downloads");}
-function mostraPrevFoto(){var p=placas.find(function(x){return x.id===atual;});var el=document.getElementById("fFotoPrev");if(!el)return;if(p&&p.fotoThumb){el.innerHTML='<img src="'+p.fotoThumb+'" style="margin-top:10px;max-width:170px;border-radius:8px;border:2px solid var(--linha);display:block"><div class="dica" style="margin-top:4px">Foto registrada'+(p.fotoGps?" · georreferenciada ("+esc(p.fotoGps)+")":" · sem GPS")+'</div>';}else{el.innerHTML="";}}
+function mostraPrevFoto(){var p=placas.find(function(x){return x.id===atual;});var el=document.getElementById("fFotoPrev");if(!el)return;if(p&&p.fotoThumb){el.innerHTML='<img src="'+p.fotoThumb+'" style="margin-top:10px;max-width:170px;border-radius:8px;border:2px solid var(--linha);display:block"><div class="dica" style="margin-top:4px">Foto registrada'+(p.fotoGps?" · georreferenciada ("+esc(p.fotoGps)+")":" · sem GPS")+'</div><button class="btn" style="margin-top:8px;background:#fff;color:var(--vermelho);border:2px solid var(--vermelho)" onclick="apagarFoto()">🗑 Apagar foto</button>';}else{el.innerHTML="";}}
+function apagarFoto(){
+  var p=placas.find(function(x){return x.id===atual;}); if(!p)return;
+  if(!p.fotoThumb){toast("Esta placa não tem foto");return;}
+  if(!confirm("Apagar a foto desta placa? A imagem já salva na galeria não é afetada.")) return;
+  p.fotoThumb=""; p.fotoGps="";
+  persist(); sujo=true;
+  mostraPrevFoto();
+  toast("Foto removida do app ✓");
+}
 function setToggle(boxId,val,btn){var box=document.getElementById(boxId);Array.prototype.forEach.call(box.children,function(b){b.classList.remove("sel-sim","sel-nao");});btn.classList.add(val==="N"?"sel-nao":"sel-sim");box.dataset.val=val;marcaSujo();}
 function marcaToggle(boxId,val){var box=document.getElementById(boxId);box.dataset.val=val||"";Array.prototype.forEach.call(box.children,function(b){b.classList.remove("sel-sim","sel-nao");if(b.dataset.v===val)b.classList.add(val==="N"?"sel-nao":"sel-sim");});}
 function ajustaAltura(d){var el=document.getElementById("fAltura");var v=parseFloat((el.value||"0").replace(",","."));if(isNaN(v))v=0;v=Math.max(0,Math.round((v+d)*100)/100);el.value=v.toFixed(2).replace(".",",");marcaSujo();}
