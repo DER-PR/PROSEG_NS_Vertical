@@ -737,6 +737,8 @@ function renderLoteForm(gr,i){
     '<button class="btn btn-sec" style="margin-bottom:14px" onclick="sujo=false;irPara(\'lote\')">← Voltar</button>'+
     '<h2>Marcadores · curva '+(i+1)+'</h2>'+
     '<p class="dica">km '+esc(a)+' a '+esc(b)+' · '+gr.itens.length+' marcadores. Defina os itens comuns e digite a altura só nos que mediu.</p>'+
+    (f0.eixo?'<p class="dica" style="margin-top:-6px">Eixo: <b>'+esc(fmtEixo(f0.eixo))+'</b></p>':'')+
+    (eixoDifere(f0)?'<div style="margin-bottom:12px;background:#fbe7d2;color:#8a4b06;border-radius:8px;padding:9px 11px;font-size:13px;font-weight:600;line-height:1.4">⚠ Interseção: estes marcadores estão no eixo <b>'+esc(fmtEixo(f0.eixo))+'</b>. O km refere-se a essa rodovia, não à '+esc(normEixo(rodBase()))+'.</div>':'')+
     '<div class="grupo"><label class="campo">Todas instaladas no Km correto?</label><div class="toggle" id="lgKm"><button type="button" data-v="S" onclick="setToggle(\'lgKm\',\'S\',this)">Sim</button><button type="button" data-v="N" onclick="setToggle(\'lgKm\',\'N\',this)">Não</button></div></div>'+
     '<div class="grupo"><label class="campo">Casca de pinus (todas)</label><div class="toggle" id="lgPinus"><button type="button" data-v="S" onclick="setToggle(\'lgPinus\',\'S\',this)">Sim</button><button type="button" data-v="N" onclick="setToggle(\'lgPinus\',\'N\',this)">Não</button></div></div>'+
     '<div class="grupo"><label class="campo">Fotos georreferenciadas do grupo (2)</label>'+
