@@ -118,6 +118,7 @@
   .placa .selo{white-space:nowrap}
   .selo.retro{background:var(--verde-esc);color:#fff}
   .selo.retropend{background:#8a6d00;color:#fff}
+  .selo.fechada{background:#0b4f8a;color:#fff}
   .retro-res{margin-top:8px;font-size:13px;color:var(--cinza)}
   .retro-res b{color:var(--tinta)}
 </style>
@@ -164,6 +165,8 @@
         <h2 id="fichaKm">Km --</h2>
         <p class="dica" id="fichaCod">Codigo</p>
         <div class="ctx" id="fichaCtx"></div>
+        <div id="fichaFechada" class="esconde" style="background:#e7f0fb;border:2px solid #b9d4f2;color:#0b4f8a;border-radius:10px;padding:12px 14px;font-weight:700;margin-top:12px;line-height:1.45">🔒 Medição <span id="fichaMedFech"></span> fechada — esta placa já foi medida e não pode ser alterada. Os detalhes ficam no painel.</div>
+        <div id="fichaEdit">
         <button class="btn btn-retro" onclick="abrirRetro(atual)">🔦 Realizar Retro</button>
         <div class="grupo" style="margin-top:14px">
           <label class="campo">Instalada no Km correto?</label>
@@ -205,6 +208,7 @@
         <button class="btn btn-primario" onclick="salvarFicha(true)">Salvar e ir para a próxima</button>
         <button class="btn btn-sec" style="margin-top:8px" onclick="salvarFicha(false)">Salvar e voltar à lista</button>
         <button class="btn" id="btnPendente" style="margin-top:8px;background:#fff;color:var(--vermelho);border:2px solid var(--vermelho)" onclick="marcarPendente()">↩ Marcar como pendente</button>
+        </div>
       </div>
     </section>
 
@@ -302,8 +306,23 @@ var atual=null, sujo=false, gpsTmp=null, atualGrupo=[], vAtual="rod", filtroStat
 
 function novaLista(arr){return arr.map(function(d,i){return{
   id:"p"+i, imgIdx:i, cod:d.cod, kmP:d.kmP, sup:d.sup, qtd:d.qtd, larg:d.larg, altP:d.altP, area:d.area, pel:d.pel||"",
-  status:"pendente", kmOk:"", altura:"", pinus:"", foto:"", obs:"", lat:"",lng:"",gpsAcc:"", dataHora:"", retro:null, fotoThumb:"", fotoGps:""
+  status:"pendente", kmOk:"", altura:"", pinus:"", foto:"", obs:"", lat:"",lng:"",gpsAcc:"", dataHora:"", retro:null, fotoThumb:"", fotoGps:"", fechada:0
 };});}
+/* aplica as "medições fechadas" (baixa definitiva) publicadas: arquivo pequeno
+   por rodovia com { "<indice da placa>": <nº da medição> }. Vem dos dados no ar,
+   então sobrevive a limpar cache / trocar de celular. Marca a placa como medida
+   e travada. Se estiver offline/sem arquivo, mantém o que já estava. */
+async function aplicarFechadas(cod){
+  var it=manifest.find(function(x){return x.codigo===cod;}); if(!it) return;
+  var url=it.arquivo.replace(/\.json$/i,".fechadas.json");
+  var fech=null;
+  try{ var r=await fetch(url+"?ts="+Date.now()); if(r.ok) fech=await r.json(); }catch(e){}
+  if(!fech||typeof fech!=="object") return;
+  var mudou=false;
+  Object.keys(fech).forEach(function(k){ var i=parseInt(k,10); var med=fech[k]; var p=placas[i];
+    if(p && (p.fechada!==med || p.status!=="medida")){ p.status="medida"; p.fechada=med; mudou=true; } });
+  if(mudou) persist();
+}
 function persist(){ if(DB&&rodAtual) idbPut("trab",rodAtual,placas); }
 
 /* ====== Inicialização ====== */
@@ -360,6 +379,7 @@ async function abrirRodovia(cod){
   var trab = DB? await idbGet("trab",cod) : null;
   if(!trab || !trab.length){ trab=novaLista(ref.placas||[]); if(DB) await idbPut("trab",cod,trab); }
   placas=trab; rodAtual=cod; cfg.rodovia=cod;
+  await aplicarFechadas(cod);
   document.getElementById("barraProg").classList.remove("esconde");
   document.getElementById("navTabs").classList.remove("esconde");
   irPara("lista");
@@ -426,6 +446,7 @@ function renderLista(){
     var temR=temRetro(p);
     var seloCls = !f ? (temR?"retropend":"pend") : (temR?"retro":"feito");
     var seloTxt = !f ? (temR?"PEND. + RETRO":"PENDENTE") : (temR?"MEDIDA + RETRO":"MEDIDA");
+    if(p.fechada){seloCls="fechada";seloTxt="🔒 MED "+p.fechada;}
     return '<div class="placa '+(f?"medida":"")+'" onclick="abrirFicha(\''+p.id+'\')">'+
       thumb+
       '<div class="km"><b>KM</b><span>'+esc(p.kmP||"--")+'</span></div>'+
@@ -463,6 +484,10 @@ function abrirFicha(id){
   marcaToggle("tgPinus",p.pinus);
   setGpsBox(p.lat?(p.lat+", "+p.lng+" (±"+p.gpsAcc+" m)"):null,!!p.lat);
   var bp=document.getElementById("btnPendente");if(bp)bp.style.display=(p.status==="medida")?"":"none";
+  var fechada=!!p.fechada;
+  document.getElementById("fichaFechada").classList.toggle("esconde",!fechada);
+  document.getElementById("fichaEdit").classList.toggle("esconde",fechada);
+  if(fechada) document.getElementById("fichaMedFech").textContent=p.fechada;
   irPara("ficha");
   document.getElementById("hdrTitulo").textContent="Km "+(p.kmP||"--");
 }
@@ -684,6 +709,7 @@ function ajustaAltura(d){var el=document.getElementById("fAltura");var v=parseFl
 function marcaSujo(){sujo=true;}
 function salvarFicha(prox){
   var p=placas.find(function(x){return x.id===atual;});if(!p)return;
+  if(p.fechada){toast("Medição fechada — placa não editável");return;}
   p.kmOk=document.getElementById("tgKm").dataset.val||"";
   p.pinus=document.getElementById("tgPinus").dataset.val||"";
   p.altura=(document.getElementById("fAltura").value||"").replace(".",",").trim();
@@ -696,7 +722,7 @@ function salvarFicha(prox){
   if(prox){var pend=placas.filter(function(x){return x.status!=="medida";});if(pend.length){toast("Salvo. Próxima →");abrirFicha(pend[0].id);return;}toast("Tudo medido! 🎉");irListaScroll();return;}
   toast("Placa salva ✓");irListaScroll();
 }
-function marcarPendente(){var p=placas.find(function(x){return x.id===atual;});if(!p)return;if(p.status!=="medida"){toast("Esta placa já está pendente");return;}p.status="pendente";p.kmOk="";p.altura="";p.pinus="";persist();sujo=false;toast("Marcada como pendente ✓");irListaScroll();}
+function marcarPendente(){var p=placas.find(function(x){return x.id===atual;});if(!p)return;if(p.fechada){toast("Medição fechada — não pode voltar a pendente");return;}if(p.status!=="medida"){toast("Esta placa já está pendente");return;}p.status="pendente";p.kmOk="";p.altura="";p.pinus="";persist();sujo=false;toast("Marcada como pendente ✓");irListaScroll();}
 
 /* ====== GPS ====== */
 function capturaGPS(){
@@ -824,7 +850,7 @@ function fmtEixo(s){return (s||"").trim().replace(/\s+/g,"-").replace(/-+/g,"-")
 function normEixo(s){return fmtEixo(s).toUpperCase().replace(/^PRC-/,"PR-");}
 function eixoDifere(p){var e=normEixo(p&&p.eixo);return e!=="" && e!==normEixo(rodBase());}
 function linhaPlan(p){var k=splitKm(p.kmP);return[rodBase(), fmtEixo(p.eixo), p.cod, k[0], k[1], p.sup, p.qtd, p.altura, simNao(p.pinus), p.pel||"", p.area, p.foto, p.obs||""];}
-function copiarPlanilha(){var med=placas.filter(function(p){return p.status==="medida";});if(!med.length){toast("Nenhuma placa medida ainda");return;}var txt=med.map(function(p){return linhaPlan(p).map(function(v){return v==null?"":(""+v);}).join("\t");}).join("\n");copiar(txt, med.length+" placas copiadas — cole na célula C27 da planilha");}
+function copiarPlanilha(){var med=placas.filter(function(p){return p.status==="medida"&&!p.fechada;});if(!med.length){toast("Nenhuma placa medida ainda");return;}var txt=med.map(function(p){return linhaPlan(p).map(function(v){return v==null?"":(""+v);}).join("\t");}).join("\n");copiar(txt, med.length+" placas copiadas — cole na célula C27 da planilha");}
 function copiarRetro(){
   var comR=placas.filter(temRetro);
   if(!comR.length){toast("Nenhum ensaio de retro registrado");return;}
@@ -864,10 +890,10 @@ function copiarRetro(){
 }
 var COLS_CSV=COLS_PLAN.concat(["Km Instalado (S/N)","Medição","Empresa","Técnico","Data/Hora","Latitude","Longitude","Precisão GPS (m)"]);
 function linhaCSV(p){return linhaPlan(p).concat([simNao(p.kmOk),cfg.medicao||"",cfg.empresa||"",cfg.tecnico||"",p.dataHora||"",p.lat||"",p.lng||"",p.gpsAcc||""]);}
-function montaCSV(){var c=";";var h=COLS_CSV.join(c);var corpo=placas.filter(function(p){return p.status==="medida";}).map(function(p){return linhaCSV(p).map(campoCSV).join(c);}).join("\r\n");return "\uFEFF"+h+"\r\n"+corpo;}
+function montaCSV(){var c=";";var h=COLS_CSV.join(c);var corpo=placas.filter(function(p){return p.status==="medida"&&!p.fechada;}).map(function(p){return linhaCSV(p).map(campoCSV).join(c);}).join("\r\n");return "\uFEFF"+h+"\r\n"+corpo;}
 function campoCSV(v){v=(v==null?"":""+v);if(/[";\n]/.test(v))v='"'+v.replace(/"/g,'""')+'"';return v;}
 function nomeArq(){var d=new Date(),z=function(n){return(n<10?"0":"")+n;};return (rodAtual||"medicao").replace(/[^\w-]/g,"_")+"_vertical_"+(cfg.medicao?("med"+cfg.medicao+"_"):"")+d.getFullYear()+z(d.getMonth()+1)+z(d.getDate())+".csv";}
-function nMedidas(){return placas.filter(function(p){return p.status==="medida";}).length;}
+function nMedidas(){return placas.filter(function(p){return p.status==="medida"&&!p.fechada;}).length;}
 function baixarCSV(){if(!nMedidas()){toast("Nenhuma placa medida ainda");return;}var blob=new Blob([montaCSV()],{type:"text/csv;charset=utf-8;"});var url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=nomeArq();document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(function(){URL.revokeObjectURL(url);},1500);toast(nMedidas()+" registro(s) exportado(s)");}
 async function compartilhar(){if(!nMedidas()){toast("Nenhuma placa medida ainda");return;}var blob=new Blob([montaCSV()],{type:"text/csv"});var file=new File([blob],nomeArq(),{type:"text/csv"});try{if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:"Medição "+rodAtual,text:"Medição PROSEG "+rodAtual});return;}}catch(e){}baixarCSV();toast("Compartilhamento indisponível — arquivo baixado");}
 function copiar(txt,msg){if(navigator.clipboard){navigator.clipboard.writeText(txt).then(function(){toast(msg);},function(){copiaFB(txt,msg);});}else copiaFB(txt,msg);}
