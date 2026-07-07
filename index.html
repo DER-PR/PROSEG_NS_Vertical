@@ -298,10 +298,10 @@ function idbKeys(store){return new Promise(function(res){try{var ks=[],t=DB.tran
 
 /* ====== Estado ====== */
 var manifest=[], rodAtual=null, placas=[], IMGS=[], cfg={empresa:"",tecnico:"",medicao:""};
-var atual=null, sujo=false, gpsTmp=null, atualGrupo=[], vAtual="rod", filtroStatus="todas";
+var atual=null, sujo=false, gpsTmp=null, atualGrupo=[], vAtual="rod", filtroStatus="todas", scrollLista=0;
 
 function novaLista(arr){return arr.map(function(d,i){return{
-  id:"p"+i, imgIdx:i, cod:d.cod, kmP:d.kmP, sup:d.sup, qtd:d.qtd, larg:d.larg, altP:d.altP, area:d.area, pel:d.pel||"", eixo:d.eixo||"",
+  id:"p"+i, imgIdx:i, cod:d.cod, kmP:d.kmP, sup:d.sup, qtd:d.qtd, larg:d.larg, altP:d.altP, area:d.area, pel:d.pel||"",
   status:"pendente", kmOk:"", altura:"", pinus:"", foto:"", obs:"", lat:"",lng:"",gpsAcc:"", dataHora:"", retro:null, fotoThumb:"", fotoGps:""
 };});}
 function persist(){ if(DB&&rodAtual) idbPut("trab",rodAtual,placas); }
@@ -346,29 +346,20 @@ async function mostraRodovias(){
 }
 async function abrirRodovia(cod){
   var ref = DB? await idbGet("ref",cod) : null;
-  var stale = ref && ref.placas && ref.placas.length && !("eixo" in ref.placas[0]);
-  if(!ref || stale){
+  if(!ref){
     var it=manifest.find(function(x){return x.codigo===cod;});
-    if(!it && !ref){ toast("Rodovia não encontrada"); return; }
-    if(it){
-      if(!ref) toast("Baixando "+cod+"...");
-      try{
-        var r=await fetch(it.arquivo+"?ts="+Date.now()); if(!r.ok) throw 0;
-        ref=await r.json();
-        if(DB) await idbPut("ref",cod,ref);
-      }catch(e){ if(!ref){ toast("Sem conexão. Baixe esta rodovia na base, com internet."); return; } }
-    }
+    if(!it){ toast("Rodovia não encontrada"); return; }
+    toast("Baixando "+cod+"...");
+    try{
+      var r=await fetch(it.arquivo+"?ts="+Date.now()); if(!r.ok) throw 0;
+      ref=await r.json();
+      if(DB) await idbPut("ref",cod,ref);
+    }catch(e){ toast("Sem conexão. Baixe esta rodovia na base, com internet."); return; }
   }
   IMGS = ref.imgs||[];
   var trab = DB? await idbGet("trab",cod) : null;
   if(!trab || !trab.length){ trab=novaLista(ref.placas||[]); if(DB) await idbPut("trab",cod,trab); }
   placas=trab; rodAtual=cod; cfg.rodovia=cod;
-  // preenche o eixo em cópias de trabalho criadas antes do eixo existir
-  var _refP=ref.placas||[], _mud=false;
-  placas.forEach(function(p){
-    if(p.eixo==null){ var ix=(p.imgIdx!=null?p.imgIdx:parseInt(String(p.id).slice(1),10)); var rp=_refP[ix]; if(rp){ p.eixo=rp.eixo||""; _mud=true; } }
-  });
-  if(_mud && DB) idbPut("trab",cod,placas);
   document.getElementById("barraProg").classList.remove("esconde");
   document.getElementById("navTabs").classList.remove("esconde");
   irPara("lista");
@@ -383,10 +374,8 @@ async function baixarTodas(){
   for(var i=0;i<manifest.length;i++){
     var it=manifest[i];
     var have = DB? await idbGet("ref",it.codigo) : null;
-    var staleH = have && have.placas && have.placas.length && !("eixo" in have.placas[0]);
-    if(!have || staleH){
-      try{ var r=await fetch(it.arquivo+"?ts="+Date.now()); if(!r.ok) throw 0; var d=await r.json(); if(DB){ await idbPut("ref",it.codigo,d);
-             var tr=await idbGet("trab",it.codigo); if(tr&&tr.length){ tr.forEach(function(p,ix){ if(p.eixo==null){ var rp=(d.placas||[])[p.imgIdx!=null?p.imgIdx:ix]; if(rp) p.eixo=rp.eixo||""; } }); await idbPut("trab",it.codigo,tr); } } }
+    if(!have){
+      try{ var r=await fetch(it.arquivo+"?ts="+Date.now()); if(!r.ok) throw 0; var d=await r.json(); if(DB) await idbPut("ref",it.codigo,d); }
       catch(e){ /* segue */ }
     }
     var temAgora = DB? await idbGet("ref",it.codigo) : null; if(temAgora) ok++;
@@ -452,6 +441,7 @@ function setFiltro(f,btn){filtroStatus=f;Array.prototype.forEach.call(document.q
 
 /* ====== Ficha ====== */
 function abrirFicha(id){
+  if(vAtual==="lista") scrollLista=window.scrollY||document.documentElement.scrollTop||0;
   atual=id;sujo=false;gpsTmp=null;
   var p=placas.find(function(x){return x.id===id;});if(!p)return;
   document.getElementById("fichaKm").textContent="Km "+(p.kmP||"--");
@@ -476,7 +466,11 @@ function abrirFicha(id){
   irPara("ficha");
   document.getElementById("hdrTitulo").textContent="Km "+(p.kmP||"--");
 }
-function voltarFicha(){sujo=false;irPara("lista");}
+function voltarFicha(){sujo=false;irListaScroll();}
+/* volta para a lista mantendo a posição de rolagem em que o usuário estava.
+   A lista tem miniaturas: a altura só estabiliza após as imagens renderizarem,
+   então restauramos a posição algumas vezes ao longo de ~250ms. */
+function irListaScroll(){irPara("lista");var y=scrollLista;[0,40,100,180,260].forEach(function(d){setTimeout(function(){window.scrollTo(0,y);},d);});}
 
 /* ====== Retrorrefletância ====== */
 var CORES_RETRO=["Branca","Vermelha","Amarela","Lima Limão","Azul","Verde","Marrom","Laranja"];
@@ -699,10 +693,10 @@ function salvarFicha(prox){
   p.dataHora=new Date().toLocaleString("pt-BR");
   p.status="medida";
   persist();sujo=false;
-  if(prox){var pend=placas.filter(function(x){return x.status!=="medida";});if(pend.length){toast("Salvo. Próxima →");abrirFicha(pend[0].id);return;}toast("Tudo medido! 🎉");irPara("lista");return;}
-  toast("Placa salva ✓");irPara("lista");
+  if(prox){var pend=placas.filter(function(x){return x.status!=="medida";});if(pend.length){toast("Salvo. Próxima →");abrirFicha(pend[0].id);return;}toast("Tudo medido! 🎉");irListaScroll();return;}
+  toast("Placa salva ✓");irListaScroll();
 }
-function marcarPendente(){var p=placas.find(function(x){return x.id===atual;});if(!p)return;if(p.status!=="medida"){toast("Esta placa já está pendente");return;}p.status="pendente";p.kmOk="";p.altura="";p.pinus="";persist();sujo=false;toast("Marcada como pendente ✓");irPara("lista");}
+function marcarPendente(){var p=placas.find(function(x){return x.id===atual;});if(!p)return;if(p.status!=="medida"){toast("Esta placa já está pendente");return;}p.status="pendente";p.kmOk="";p.altura="";p.pinus="";persist();sujo=false;toast("Marcada como pendente ✓");irListaScroll();}
 
 /* ====== GPS ====== */
 function capturaGPS(){
@@ -737,8 +731,6 @@ function renderLoteForm(gr,i){
     '<button class="btn btn-sec" style="margin-bottom:14px" onclick="sujo=false;irPara(\'lote\')">← Voltar</button>'+
     '<h2>Marcadores · curva '+(i+1)+'</h2>'+
     '<p class="dica">km '+esc(a)+' a '+esc(b)+' · '+gr.itens.length+' marcadores. Defina os itens comuns e digite a altura só nos que mediu.</p>'+
-    (f0.eixo?'<p class="dica" style="margin-top:-6px">Eixo: <b>'+esc(fmtEixo(f0.eixo))+'</b></p>':'')+
-    (eixoDifere(f0)?'<div style="margin-bottom:12px;background:#fbe7d2;color:#8a4b06;border-radius:8px;padding:9px 11px;font-size:13px;font-weight:600;line-height:1.4">⚠ Interseção: estes marcadores estão no eixo <b>'+esc(fmtEixo(f0.eixo))+'</b>. O km refere-se a essa rodovia, não à '+esc(normEixo(rodBase()))+'.</div>':'')+
     '<div class="grupo"><label class="campo">Todas instaladas no Km correto?</label><div class="toggle" id="lgKm"><button type="button" data-v="S" onclick="setToggle(\'lgKm\',\'S\',this)">Sim</button><button type="button" data-v="N" onclick="setToggle(\'lgKm\',\'N\',this)">Não</button></div></div>'+
     '<div class="grupo"><label class="campo">Casca de pinus (todas)</label><div class="toggle" id="lgPinus"><button type="button" data-v="S" onclick="setToggle(\'lgPinus\',\'S\',this)">Sim</button><button type="button" data-v="N" onclick="setToggle(\'lgPinus\',\'N\',this)">Não</button></div></div>'+
     '<div class="grupo"><label class="campo">Fotos georreferenciadas do grupo (2)</label>'+
@@ -825,7 +817,8 @@ function renderResumo(){document.getElementById("rOk").textContent=placas.filter
 function splitKm(s){s=(s||"").trim();var p=s.split("+");var km=p[0]||"";var m=(p.length>1?p[1]:"");m=m.split(",")[0].split(".")[0].trim();return[km,m];}
 function rodBase(){return (rodAtual||"").replace(/\s*\(.*\)\s*$/,"").trim();}
 function simNao(v){return v==="S"?"Sim":(v==="N"?"Não":"");}
-// 12 colunas para colar a partir de C27 na planilha de medição
+// 13 colunas para colar a partir de C27 na planilha de medição
+// (inclui "Eixo": linhaPlan gera rodBase, eixo, cod, ... — o cabeçalho precisa bater com os 13 valores)
 var COLS_PLAN=["Rodovia","Eixo","Placa","Km","Fração","Suporte","Qtde Suporte","Altura do Suporte","Casca de Pinus","Tipo Película","Área (m²)","Fotos","Observação"];
 function fmtEixo(s){return (s||"").trim().replace(/\s+/g,"-").replace(/-+/g,"-");}
 function normEixo(s){return fmtEixo(s).toUpperCase().replace(/^PRC-/,"PR-");}
