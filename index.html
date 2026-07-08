@@ -751,8 +751,13 @@ function renderLote(){
 function openGrupo(i){var g=gruposMarcadores(),gr=g[i];if(!gr)return;atualGrupo=gr.itens.map(function(p){return p.id;});renderLoteForm(gr,i);irPara("loteForm");}
 function splitFoto(s,idx){if(!s)return"";var p=(""+s).split("/");return (p[idx]||"").trim();}
 function renderLoteForm(gr,i){
-  var a=gr.itens[0].kmP,b=gr.itens[gr.itens.length-1].kmP,f0=gr.itens[0];
-  var rows=gr.itens.map(function(p){return '<div class="lote-row"><span class="lote-km">km '+esc(p.kmP)+'</span><input type="text" inputmode="decimal" id="la_'+p.id+'" class="lote-alt" placeholder="altura (m)" value="'+esc(p.altura||"")+'"></div>';}).join("");
+  var a=gr.itens[0].kmP,b=gr.itens[gr.itens.length-1].kmP;
+  var f0=gr.itens.filter(function(p){return !p.fechada;})[0]||gr.itens[0];
+  var nEdit=gr.itens.filter(function(p){return !p.fechada;}).length;
+  var rows=gr.itens.map(function(p){
+    if(p.fechada) return '<div class="lote-row"><span class="lote-km">km '+esc(p.kmP)+'</span><span class="lote-alt" style="text-align:center;color:#0b4f8a;font-weight:700;background:#e7f0fb;border-radius:8px;padding:8px 0">🔒 MED '+p.fechada+'</span></div>';
+    return '<div class="lote-row"><span class="lote-km">km '+esc(p.kmP)+'</span><input type="text" inputmode="decimal" id="la_'+p.id+'" class="lote-alt" placeholder="altura (m)" value="'+esc(p.altura||"")+'"></div>';
+  }).join("");
   document.getElementById("loteFormCard").innerHTML=
     '<button class="btn btn-sec" style="margin-bottom:14px" onclick="sujo=false;irPara(\'lote\')">← Voltar</button>'+
     '<h2>Marcadores · curva '+(i+1)+'</h2>'+
@@ -767,7 +772,9 @@ function renderLoteForm(gr,i){
     '<input type="file" id="lFotoCam" accept="image/*" capture="environment" style="display:none" onchange="processaFotoLote(this)"></div>'+
     '<label class="campo">Altura por marcador (m)</label>'+
     '<div class="lote-lista">'+rows+'</div>'+
-    '<button class="btn btn-primario" style="margin-top:14px" onclick="salvarLote()">Salvar lote ('+gr.itens.length+')</button>';
+    (nEdit>0
+      ? '<button class="btn btn-primario" style="margin-top:14px" onclick="salvarLote()">Salvar lote ('+nEdit+')</button>'
+      : '<p class="dica" style="margin-top:14px;text-align:center">🔒 Todos os marcadores deste grupo já estão fechados (medição concluída).</p>');
   loteF0=f0.id; loteKmStr=esc(a)+" a "+esc(b);
   marcaToggle("lgKm", f0.kmOk||"S");
   marcaToggle("lgPinus", f0.pinus||"");
@@ -834,8 +841,9 @@ function salvarLote(){
   var f1=document.getElementById("lFoto1").value.trim(),f2=document.getElementById("lFoto2").value.trim();
   var foto=[f1,f2].filter(Boolean).join(" / ");
   var agora=new Date().toLocaleString("pt-BR");
-  atualGrupo.forEach(function(id){var p=placas.find(function(x){return x.id===id;});if(!p)return;var alt=document.getElementById("la_"+id);if(alt)p.altura=(alt.value||"").replace(".",",").trim();p.kmOk=km;p.pinus=pin;p.foto=foto;p.status="medida";p.dataHora=agora;});
-  persist();sujo=false;toast(atualGrupo.length+" marcadores salvos ✓");irPara("lote");
+  var nSalvos=0;
+  atualGrupo.forEach(function(id){var p=placas.find(function(x){return x.id===id;});if(!p)return;if(p.fechada)return;var alt=document.getElementById("la_"+id);if(alt)p.altura=(alt.value||"").replace(".",",").trim();p.kmOk=km;p.pinus=pin;p.foto=foto;p.status="medida";p.dataHora=agora;nSalvos++;});
+  persist();sujo=false;toast(nSalvos+" marcadores salvos ✓");irPara("lote");
 }
 
 /* ====== Exportação ====== */
