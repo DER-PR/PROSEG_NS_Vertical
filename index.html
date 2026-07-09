@@ -720,21 +720,25 @@ function sugereFoto(){var n=placas.map(function(p){return parseInt(p.foto,10);})
 
 /* ====== Foto georreferenciada ====== */
 var fotoGps=null;
+var gpsPromise=null;
+/* dispara a captura de GPS em paralelo (a câmera abre já, no toque; a foto espera o GPS) */
+function pedirGPS(comPlaca){
+  fotoGps=null;
+  if(!navigator.geolocation){ gpsPromise=Promise.resolve(null); return; }
+  if(comPlaca) setGpsBox("Obtendo GPS…",false);
+  gpsPromise=new Promise(function(resolve){
+    navigator.geolocation.getCurrentPosition(function(pos){
+      fotoGps={lat:pos.coords.latitude,lng:pos.coords.longitude,acc:Math.round(pos.coords.accuracy)};
+      if(comPlaca){ gpsTmp={lat:pos.coords.latitude.toFixed(6),lng:pos.coords.longitude.toFixed(6),acc:fotoGps.acc}; sujo=true; setGpsBox(gpsTmp.lat+", "+gpsTmp.lng+" (±"+gpsTmp.acc+" m)",true); }
+      resolve(fotoGps);
+    },function(){ fotoGps=null; if(comPlaca) setGpsBox("Sem GPS (sinal fraco) — a foto sairá sem coordenada",false); resolve(null); },{enableHighAccuracy:true,timeout:15000,maximumAge:8000});
+  });
+}
 function tirarFoto(){
   var f=document.getElementById("fFoto");
   if(!(f.value||"").trim()){ f.value=sugereFoto()||"1"; marcaSujo(); }
-  fotoGps=null;
-  if(!navigator.geolocation){ document.getElementById("fFotoCam").click(); return; }
-  toast("📍 Obtendo GPS… aguarde"); setGpsBox("Obtendo GPS…",false);
-  navigator.geolocation.getCurrentPosition(function(pos){
-    fotoGps={lat:pos.coords.latitude,lng:pos.coords.longitude,acc:Math.round(pos.coords.accuracy)};
-    gpsTmp={lat:pos.coords.latitude.toFixed(6),lng:pos.coords.longitude.toFixed(6),acc:fotoGps.acc}; sujo=true;
-    setGpsBox(gpsTmp.lat+", "+gpsTmp.lng+" (±"+gpsTmp.acc+" m)",true);
-    document.getElementById("fFotoCam").click();
-  },function(){
-    fotoGps=null; setGpsBox("Falha no GPS — verifique a permissão",false);
-    if(confirm("Não consegui o GPS agora (sinal fraco?). Tirar a foto mesmo assim, SEM coordenada?")) document.getElementById("fFotoCam").click();
-  },{enableHighAccuracy:true,timeout:15000,maximumAge:8000});
+  pedirGPS(true);
+  document.getElementById("fFotoCam").click();   // abre a câmera no MESMO toque (exigência do iOS)
 }
 function processaFoto(input){
   var file=input.files&&input.files[0]; if(!file){return;}
@@ -743,11 +747,12 @@ function processaFoto(input){
   var reader=new FileReader();
   reader.onload=function(e){
     var img=new Image();
-    img.onload=function(){
+    img.onload=async function(){
       var maxE=1600,w=img.width,h=img.height,s=Math.min(1,maxE/Math.max(w,h));
       var cw=Math.round(w*s),ch=Math.round(h*s);
       var cv=document.createElement("canvas");cv.width=cw;cv.height=ch;
       var ctx=cv.getContext("2d");ctx.drawImage(img,0,0,cw,ch);
+      if(gpsPromise){try{await gpsPromise;}catch(_e){}}   // garante o GPS antes de carimbar
       var g=fotoGps||((p&&p.lat)?{lat:parseFloat(p.lat),lng:parseFloat(p.lng),acc:p.gpsAcc}:null);
       desenhaCarimbo(ctx,cw,ch,{idx:idx,rod:rodAtual,km:(p&&p.kmP)||"",g:g});
       var dataURL=cv.toDataURL("image/jpeg",0.85);
@@ -908,16 +913,8 @@ function tirarFotoLote(qual){
   loteQual=qual;
   var el=document.getElementById("lFoto"+qual);
   if(!(el.value||"").trim()){el.value=proxFotoNum();sujo=true;}
-  fotoGps=null;
-  if(!navigator.geolocation){ document.getElementById("lFotoCam").click(); return; }
-  toast("📍 Obtendo GPS… aguarde");
-  navigator.geolocation.getCurrentPosition(function(pos){
-    fotoGps={lat:pos.coords.latitude,lng:pos.coords.longitude,acc:Math.round(pos.coords.accuracy)};
-    toast("📍 GPS OK — abrindo câmera"); document.getElementById("lFotoCam").click();
-  },function(){
-    fotoGps=null;
-    if(confirm("Não consegui o GPS agora (sinal fraco?). Tirar a foto mesmo assim, SEM coordenada?")) document.getElementById("lFotoCam").click();
-  },{enableHighAccuracy:true,timeout:15000,maximumAge:8000});
+  pedirGPS(false);
+  document.getElementById("lFotoCam").click();   // abre a câmera no MESMO toque
 }
 function processaFotoLote(input){
   var file=input.files&&input.files[0]; if(!file){input.value="";return;}
@@ -926,10 +923,11 @@ function processaFotoLote(input){
   var reader=new FileReader();
   reader.onload=function(e){
     var img=new Image();
-    img.onload=function(){
+    img.onload=async function(){
       var maxE=1600,w=img.width,h=img.height,s=Math.min(1,maxE/Math.max(w,h));
       var cw=Math.round(w*s),ch=Math.round(h*s);
       var cv=document.createElement("canvas");cv.width=cw;cv.height=ch;var ctx=cv.getContext("2d");ctx.drawImage(img,0,0,cw,ch);
+      if(gpsPromise){try{await gpsPromise;}catch(_e){}}   // garante o GPS antes de carimbar
       var g=fotoGps;
       desenhaCarimbo(ctx,cw,ch,{g:g,rod:cfg.rodovia||"",km:loteKmStr,idx:idx});
       var full=cv.toDataURL("image/jpeg",0.85);
