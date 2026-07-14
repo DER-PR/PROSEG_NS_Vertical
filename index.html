@@ -284,7 +284,8 @@
       <div class="cartao">
         <h2>Enviar para a planilha de retro</h2>
         <p class="dica">Gera as colunas da sua aba de lançamento (<b>B a V</b>), uma linha por cor, só placas com ensaio. Calcula <b>Média, Mínimo NBR e Status</b>. Cole na <b>aba de retro</b>, na 1ª linha de dados (<b>B13</b>). Formato, Classificação e Data de fabricação saem em branco para você preencher.</p>
-        <button class="btn btn-primario" onclick="copiarRetro()">🔦 Copiar dados de retro</button>
+        <button class="btn btn-primario" onclick="compartilharRetro()">📲 Enviar tabela por WhatsApp / e-mail</button>
+        <button class="btn btn-retro" style="margin-top:10px" onclick="copiarRetro()">🔦 Copiar dados de retro</button>
       </div>
       <div class="aviso">⚠️ Os dados ficam salvos neste aparelho. Exporte ao fim de cada trecho ou dia. Internet só é necessária para baixar rodovias e enviar o arquivo final.</div>
     </section>
@@ -981,11 +982,10 @@ function normEixo(s){return fmtEixo(s).toUpperCase().replace(/^PRC-/,"PR-");}
 function eixoDifere(p){var e=normEixo(p&&p.eixo);return e!=="" && e!==normEixo(rodBase());}
 function linhaPlan(p){var k=splitKm(p.kmP);return[rodBase(), fmtEixo(p.eixo), p.cod, k[0], k[1], p.sup, p.qtd, p.altura, simNao(p.pinus), p.pel||"", p.area, p.foto, p.obs||""];}
 function copiarPlanilha(){var med=placas.filter(function(p){return p.status==="medida"&&!p.fechada;});if(!med.length){toast("Nenhuma placa medida ainda");return;}var txt=med.map(function(p){return linhaPlan(p).map(function(v){return v==null?"":(""+v);}).join("\t");}).join("\n");copiar(txt, med.length+" placas copiadas — cole na célula C27 da planilha");}
-function copiarRetro(){
-  var comR=placas.filter(temRetro);
-  if(!comR.length){toast("Nenhum ensaio de retro registrado");return;}
-  var linhas=[];
-  comR.forEach(function(p){
+/* monta as linhas de retro (uma por cor) — colunas B a V da aba de lançamento */
+function retroRows(){
+  var rows=[];
+  placas.filter(temRetro).forEach(function(p){
     var lado=ladoCurto(p.cod);
     var tipoExp=(p.pel||"").toUpperCase();
     p.retro.cores.forEach(function(c,ci){
@@ -994,7 +994,7 @@ function copiarRetro(){
       var status=(med==null||mn==null)?"":(med>=mn?"APROVADO":"REPROVADO");
       var L=c.leituras||[];
       var prim=(ci===0); // primeira cor da placa leva os dados da placa; demais só cor + leituras
-      var row=[
+      rows.push([
         prim?(p.foto||""):"",         // B Foto
         "",                            // C Formato (preencher)
         "",                            // D Classificação (preencher)
@@ -1012,11 +1012,32 @@ function copiarRetro(){
         (med==null?"":(""+med).replace(".",",")),     // T Média
         (mn==null?"":(""+mn)),        // U Mínimo NBR
         status                         // V Status
-      ];
-      linhas.push(row.join("\t"));
+      ]);
     });
   });
-  copiar(linhas.join("\n"), comR.length+" placa(s) de retro copiadas — cole na aba de retro (B13)");
+  return rows;
+}
+function copiarRetro(){
+  var rows=retroRows();
+  if(!rows.length){toast("Nenhum ensaio de retro registrado");return;}
+  copiar(rows.map(function(r){return r.join("\t");}).join("\n"), rows.length+" linha(s) de retro copiadas — cole na aba de retro (B13)");
+}
+var COLS_RETRO=["Foto","Formato","Classificação","Data Fabricação","Data Medição","km","Posição","","Posição ","Ângulo Observação","Ângulo Entrada","Tipo Película","Cor Película","Leitura 1","Leitura 2","Leitura 3","Leitura 4","Leitura 5","Média","Mínimo NBR","Status"];
+function montaRetroCSV(){
+  var c=";";
+  var head=COLS_RETRO.join(c);
+  var corpo=retroRows().map(function(r){return r.map(campoCSV).join(c);}).join("\r\n");
+  return "﻿"+head+"\r\n"+corpo;
+}
+function nomeArqRetro(){var d=new Date(),z=function(n){return(n<10?"0":"")+n;};return (rodAtual||"retro").replace(/[^\w-]/g,"_")+"_RETRO_"+(cfg.medicao?("med"+cfg.medicao+"_"):"")+d.getFullYear()+z(d.getMonth()+1)+z(d.getDate())+".csv";}
+function baixarRetroCSV(){var blob=new Blob([montaRetroCSV()],{type:"text/csv;charset=utf-8;"});var url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=nomeArqRetro();document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(function(){URL.revokeObjectURL(url);},1500);}
+async function compartilharRetro(){
+  var rows=retroRows();
+  if(!rows.length){toast("Nenhum ensaio de retro registrado");return;}
+  var blob=new Blob([montaRetroCSV()],{type:"text/csv"});
+  var file=new File([blob],nomeArqRetro(),{type:"text/csv"});
+  try{ if(navigator.canShare&&navigator.canShare({files:[file]})){ await navigator.share({files:[file],title:"Retro "+(rodAtual||""),text:"Ensaios de retrorrefletância — "+(rodAtual||"")}); return; } }catch(e){}
+  baixarRetroCSV(); toast("Compartilhamento indisponível — tabela baixada em CSV");
 }
 var COLS_CSV=COLS_PLAN.concat(["Km Instalado (S/N)","Medição","Empresa","Técnico","Data/Hora","Latitude","Longitude","Precisão GPS (m)"]);
 function linhaCSV(p){return linhaPlan(p).concat([simNao(p.kmOk),cfg.medicao||"",cfg.empresa||"",cfg.tecnico||"",p.dataHora||"",p.lat||"",p.lng||"",p.gpsAcc||""]);}
