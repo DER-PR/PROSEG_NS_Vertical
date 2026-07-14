@@ -185,11 +185,19 @@
           </div>
         </div>
         <div class="grupo">
-          <label class="campo">Altura do suporte instalado (m)</label>
+          <label class="campo" id="lblAltura">Altura do suporte instalado (m)</label>
           <div class="stepper">
             <button type="button" onclick="ajustaAltura(-0.05)">−</button>
             <input type="text" id="fAltura" inputmode="decimal" placeholder="0,00" oninput="marcaSujo()">
             <button type="button" onclick="ajustaAltura(0.05)">+</button>
+          </div>
+        </div>
+        <div class="grupo esconde" id="grupoAltura2">
+          <label class="campo">Altura do suporte 2 (m)</label>
+          <div class="stepper">
+            <button type="button" onclick="ajustaAltura2(-0.05)">−</button>
+            <input type="text" id="fAltura2" inputmode="decimal" placeholder="0,00" oninput="marcaSujo()">
+            <button type="button" onclick="ajustaAltura2(0.05)">+</button>
           </div>
         </div>
         <div class="grupo">
@@ -329,7 +337,7 @@ var atual=null, sujo=false, gpsTmp=null, atualGrupo=[], vAtual="rod", filtroStat
 
 function novaLista(arr){return arr.map(function(d,i){return{
   id:"p"+i, imgIdx:i, cod:d.cod, kmP:d.kmP, sup:d.sup, qtd:d.qtd, larg:d.larg, altP:d.altP, area:d.area, pel:d.pel||"",
-  status:"pendente", kmOk:"", altura:"", pinus:"", foto:"", obs:"", lat:"",lng:"",gpsAcc:"", dataHora:"", retro:null, fotoThumb:"", fotoGps:"", fechada:0
+  status:"pendente", kmOk:"", altura:"", altura2:"", pinus:"", foto:"", obs:"", lat:"",lng:"",gpsAcc:"", dataHora:"", retro:null, fotoThumb:"", fotoGps:"", fechada:0
 };});}
 /* aplica as "medições fechadas" (baixa definitiva) publicadas: arquivo pequeno
    por rodovia com { "<indice da placa>": <nº da medição> }. Vem dos dados no ar,
@@ -564,7 +572,7 @@ function renderLista(){
       thumb+
       '<div class="km"><b>KM</b><span>'+esc(p.kmP||"--")+'</span></div>'+
       '<div class="info"><div class="cod">'+esc(p.cod||"Sem código")+'</div>'+
-      '<div class="det">'+(f?("Alt "+(p.altura||"--")+" m · Pinus "+(p.pinus||"--")+" · Foto "+(p.foto||"--")):esc(resumoSup(p.sup))) +'</div>'+(eixoDifere(p)?'<div class="det" style="color:#a8600c;font-weight:700">⚠ Eixo '+esc(fmtEixo(p.eixo))+'</div>':'')+'</div>'+
+      '<div class="det">'+(f?("Alt "+(nSuportes(p)===2?((p.altura||"--")+"/"+(p.altura2||"--")):(p.altura||"--"))+" m · Pinus "+(p.pinus||"--")+" · Foto "+(p.foto||"--")):esc(resumoSup(p.sup))) +'</div>'+(eixoDifere(p)?'<div class="det" style="color:#a8600c;font-weight:700">⚠ Eixo '+esc(fmtEixo(p.eixo))+'</div>':'')+'</div>'+
       '<div class="selo '+seloCls+'">'+seloTxt+'</div></div>';
   }).join("");
   atualizaProg();
@@ -590,6 +598,10 @@ function abrirFicha(id){
     '<span>Eixo: <b>'+esc(fmtEixo(p.eixo)||"--")+'</b></span></div>'+
     (eixoDifere(p)?'<div style="margin-top:8px;background:#fbe7d2;color:#8a4b06;border-radius:8px;padding:9px 11px;font-size:13px;font-weight:600;line-height:1.4">⚠ Interseção: esta placa está no eixo <b>'+esc(fmtEixo(p.eixo))+'</b>. O km refere-se a essa rodovia, não à '+esc(normEixo(rodBase()))+'.</div>':'');
   document.getElementById("fAltura").value=p.altura||"";
+  var _nsup=nSuportes(p);
+  document.getElementById("lblAltura").textContent = _nsup===2 ? "Altura do suporte 1 (m)" : "Altura do suporte instalado (m)";
+  document.getElementById("grupoAltura2").classList.toggle("esconde", _nsup!==2);
+  document.getElementById("fAltura2").value = p.altura2||"";
   document.getElementById("fFoto").value=p.foto||sugereFoto();
   document.getElementById("fObs").value=p.obs||"";
   mostraPrevFoto();
@@ -828,6 +840,14 @@ function limparFotosRodovia(){
 function setToggle(boxId,val,btn){var box=document.getElementById(boxId);Array.prototype.forEach.call(box.children,function(b){b.classList.remove("sel-sim","sel-nao");});btn.classList.add(val==="N"?"sel-nao":"sel-sim");box.dataset.val=val;marcaSujo();}
 function marcaToggle(boxId,val){var box=document.getElementById(boxId);box.dataset.val=val||"";Array.prototype.forEach.call(box.children,function(b){b.classList.remove("sel-sim","sel-nao");if(b.dataset.v===val)b.classList.add(val==="N"?"sel-nao":"sel-sim");});}
 function ajustaAltura(d){var el=document.getElementById("fAltura");var v=parseFloat((el.value||"0").replace(",","."));if(isNaN(v))v=0;v=Math.max(0,Math.round((v+d)*100)/100);el.value=v.toFixed(2).replace(".",",");marcaSujo();}
+function ajustaAltura2(d){var el=document.getElementById("fAltura2");var v=parseFloat((el.value||"0").replace(",","."));if(isNaN(v))v=0;v=Math.max(0,Math.round((v+d)*100)/100);el.value=v.toFixed(2).replace(".",",");marcaSujo();}
+/* nº de suportes a medir (do projeto: coluna Qtde Suporte). 2 => dois campos de altura */
+function nSuportes(p){ return (String(p&&p.qtd).trim()==="2") ? 2 : 1; }
+/* altura p/ exportar: com 2 suportes, junta na mesma célula ("1,30 / 1,45") */
+function altExport(p){
+  if(nSuportes(p)===2){ var a=(p.altura||"").trim(), b=(p.altura2||"").trim(); return (a&&b)?(a+" / "+b):(a||b||""); }
+  return p.altura||"";
+}
 function marcaSujo(){sujo=true;}
 function salvarFicha(prox){
   var p=placas.find(function(x){return x.id===atual;});if(!p)return;
@@ -835,6 +855,7 @@ function salvarFicha(prox){
   p.kmOk=document.getElementById("tgKm").dataset.val||"";
   p.pinus=document.getElementById("tgPinus").dataset.val||"";
   p.altura=(document.getElementById("fAltura").value||"").replace(".",",").trim();
+  p.altura2=(nSuportes(p)===2)?(document.getElementById("fAltura2").value||"").replace(".",",").trim():"";
   p.foto=document.getElementById("fFoto").value.trim();
   p.obs=document.getElementById("fObs").value.trim();
   if(gpsTmp){p.lat=gpsTmp.lat;p.lng=gpsTmp.lng;p.gpsAcc=gpsTmp.acc;}
@@ -844,7 +865,7 @@ function salvarFicha(prox){
   if(prox){var pend=placas.filter(function(x){return x.status!=="medida";});if(pend.length){toast("Salvo. Próxima →");abrirFicha(pend[0].id);return;}toast("Tudo medido! 🎉");irListaScroll();return;}
   toast("Placa salva ✓");irListaScroll();
 }
-function marcarPendente(){var p=placas.find(function(x){return x.id===atual;});if(!p)return;if(p.fechada){toast("Medição fechada — não pode voltar a pendente");return;}if(p.status!=="medida"){toast("Esta placa já está pendente");return;}p.status="pendente";p.kmOk="";p.altura="";p.pinus="";persist();sujo=false;toast("Marcada como pendente ✓");irListaScroll();}
+function marcarPendente(){var p=placas.find(function(x){return x.id===atual;});if(!p)return;if(p.fechada){toast("Medição fechada — não pode voltar a pendente");return;}if(p.status!=="medida"){toast("Esta placa já está pendente");return;}p.status="pendente";p.kmOk="";p.altura="";p.altura2="";p.pinus="";persist();sujo=false;toast("Marcada como pendente ✓");irListaScroll();}
 
 /* ====== GPS ====== */
 function capturaGPS(){
@@ -859,7 +880,7 @@ function setGpsBox(txt,ok){var box=document.getElementById("gpsBox");document.ge
 
 /* ====== Config ====== */
 function salvarConfig(){cfg.empresa=document.getElementById("cEmpresa").value;cfg.tecnico=document.getElementById("cTecnico").value;cfg.medicao=document.getElementById("cMedicao").value;if(DB)idbPut("meta","cfg",cfg);}
-function zerarMedicoes(){if(!confirm("Apagar todas as MEDIÇÕES desta rodovia, mantendo a lista?"))return;placas.forEach(function(p){p.status="pendente";p.kmOk="";p.altura="";p.pinus="";p.foto="";p.obs="";p.lat="";p.lng="";p.gpsAcc="";p.dataHora="";});persist();toast("Medições zeradas");irPara("lista");}
+function zerarMedicoes(){if(!confirm("Apagar todas as MEDIÇÕES desta rodovia, mantendo a lista?"))return;placas.forEach(function(p){p.status="pendente";p.kmOk="";p.altura="";p.altura2="";p.pinus="";p.foto="";p.obs="";p.lat="";p.lng="";p.gpsAcc="";p.dataHora="";});persist();toast("Medições zeradas");irPara("lista");}
 
 /* ====== Lote: marcadores de alinhamento ====== */
 function kmM(s){var p=(s||"").trim().split("+");var a=parseFloat(p[0])||0;var b=parseFloat((p[1]||"0").replace(",","."))||0;return a*1000+b;}
@@ -980,7 +1001,7 @@ var COLS_PLAN=["Rodovia","Eixo","Placa","Km","Fração","Suporte","Qtde Suporte"
 function fmtEixo(s){return (s||"").trim().replace(/\s+/g,"-").replace(/-+/g,"-");}
 function normEixo(s){return fmtEixo(s).toUpperCase().replace(/^PRC-/,"PR-");}
 function eixoDifere(p){var e=normEixo(p&&p.eixo);return e!=="" && e!==normEixo(rodBase());}
-function linhaPlan(p){var k=splitKm(p.kmP);return[rodBase(), fmtEixo(p.eixo), p.cod, k[0], k[1], p.sup, p.qtd, p.altura, simNao(p.pinus), p.pel||"", p.area, p.foto, p.obs||""];}
+function linhaPlan(p){var k=splitKm(p.kmP);return[rodBase(), fmtEixo(p.eixo), p.cod, k[0], k[1], p.sup, p.qtd, altExport(p), simNao(p.pinus), p.pel||"", p.area, p.foto, p.obs||""];}
 function copiarPlanilha(){var med=placas.filter(function(p){return p.status==="medida"&&!p.fechada;});if(!med.length){toast("Nenhuma placa medida ainda");return;}var txt=med.map(function(p){return linhaPlan(p).map(function(v){return v==null?"":(""+v);}).join("\t");}).join("\n");copiar(txt, med.length+" placas copiadas — cole na célula C27 da planilha");}
 /* monta as linhas de retro (uma por cor) — colunas B a V da aba de lançamento */
 function retroRows(){
