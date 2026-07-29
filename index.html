@@ -502,14 +502,29 @@ function zipStore(files){
   var out=new Uint8Array(total),pos=0; all.forEach(function(a){out.set(a,pos);pos+=a.length;});
   return out;
 }
+/* nome do arquivo da foto = RODOVIA_km<KM> (sem índice). Se duas placas tiverem
+   o mesmo km, acrescenta _1/_2 para nunca sobrescrever. */
+function _sanRod(s){ return String(s||"foto").replace(/[^A-Za-z0-9-]/g,""); }
+function _sanTok(s){ return String(s||"").trim().replace(/[\/\\:*?"<>|\s]/g,"-"); }
+function nomeiaFotos(recs){
+  recs.sort(function(a,b){ return (parseInt(a.idx,10)||0)-(parseInt(b.idx,10)||0); });
+  var cont={};
+  recs.forEach(function(r){ var km=String(r.km||"").trim();
+    r._b=_sanRod(r.rod)+(km?("_km"+_sanTok(km)):("_"+(r.idx||"sn"))); cont[r._b]=(cont[r._b]||0)+1; });
+  var us={}, out=[];
+  recs.forEach(function(r){ var b=r._b, nome; if(cont[b]>1){ us[b]=(us[b]||0)+1; nome=b+"_"+us[b]+".jpg"; } else nome=b+".jpg";
+    out.push({name:nome, bytes:dataURLtoBytes(r.data)}); });
+  return out;
+}
 async function exportarFotos(){
   if(!rodAtual){ toast("Abra uma rodovia primeiro"); return; }
   var pref=rodAtual+"#";
   var keys=(DB? await idbKeys("fotos"):[]).filter(function(k){return String(k).indexOf(pref)===0;});
   if(!keys.length){ toast("Nenhuma foto salva nesta rodovia"); return; }
   toast("Preparando "+keys.length+" foto(s)…");
-  var arqs=[];
-  for(var i=0;i<keys.length;i++){ var rec=await idbGet("fotos",keys[i]); if(!rec||!rec.data)continue; arqs.push({name:(rec.nome||(String(keys[i]).replace(/[#\/]/g,"_")+".jpg")), bytes:dataURLtoBytes(rec.data)}); }
+  var _recs=[];
+  for(var i=0;i<keys.length;i++){ var rec=await idbGet("fotos",keys[i]); if(!rec||!rec.data)continue; _recs.push(rec); }
+  var arqs=nomeiaFotos(_recs);
   if(!arqs.length){ toast("Fotos indisponíveis"); return; }
   // divide em partes <= ~90 MB (limite seguro p/ WhatsApp)
   var LIM=90*1024*1024, lotes=[], cur=[], soma=0;
@@ -789,7 +804,6 @@ function desenhaCarimbo(ctx,w,h,info){
   linhas.push(info.g?(info.g.lat.toFixed(6)+", "+info.g.lng.toFixed(6)):"GPS indisponível");
   if(info.rod)linhas.push(info.rod);
   if(info.km)linhas.push("Km "+info.km);
-  linhas.push("Índice: "+(info.idx||"--"));
   var fs=Math.max(16,Math.round(w*0.030));
   ctx.font="700 "+fs+"px system-ui,Arial,sans-serif";
   ctx.textAlign="right";ctx.textBaseline="bottom";
