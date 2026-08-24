@@ -288,6 +288,7 @@
         <h2>Enviar as fotos</h2>
         <p class="dica">Manda <b>todas as fotos desta rodovia</b> num arquivo <b>.ZIP</b> (georreferenciado, com carimbo). Envie no WhatsApp <b>como Documento</b> para não perder o GPS. Se passar do limite, o app divide em partes automaticamente.</p>
         <button class="btn btn-primario" onclick="exportarFotos()">📦 Enviar fotos por WhatsApp (ZIP)</button>
+        <div id="partesFotos"></div>
       </div>
       <div class="cartao">
         <h2>Enviar para a planilha de retro</h2>
@@ -531,15 +532,45 @@ async function exportarFotos(){
   arqs.forEach(function(a){ if(soma+a.bytes.length>LIM && cur.length){ lotes.push(cur); cur=[]; soma=0; } cur.push(a); soma+=a.bytes.length; });
   if(cur.length) lotes.push(cur);
   var base=(rodAtual||"fotos").replace(/[^A-Za-z0-9-]/g,"");
+  _partesFotos=[];
   for(var j=0;j<lotes.length;j++){
     var zip=zipStore(lotes[j]);
     var zn=base+"_fotos"+(lotes.length>1?("_parte"+(j+1)+"de"+lotes.length):"")+".zip";
-    var file=new File([zip],zn,{type:"application/zip"});
-    var enviado=false;
-    try{ if(navigator.canShare && navigator.canShare({files:[file]})){ await navigator.share({files:[file],title:zn}); enviado=true; } }catch(e){ enviado=true; /* usuário cancelou */ }
-    if(!enviado){ baixaFoto(file, zn); }
+    _partesFotos.push({name:zn, file:new File([zip],zn,{type:"application/zip"}), mb:Math.max(1,Math.round(zip.length/1048576)), enviado:false});
   }
-  toast(lotes.length>1?(lotes.length+" arquivos ZIP gerados ✓"):"ZIP das fotos pronto ✓");
+  renderPartesFotos();
+  if(_partesFotos.length===1) enviarParteFoto(0);   // 1 arquivo só: envia direto
+  else toast(_partesFotos.length+" partes — envie TODAS, uma de cada vez");
+}
+/* envio das fotos parte a parte: cada botão = 1 toque = 1 permissão de compartilhar
+   (enviar em laço perde a permissão após a 1ª parte e as demais somem — bug corrigido) */
+var _partesFotos=[];
+function renderPartesFotos(){
+  var box=document.getElementById("partesFotos"); if(!box) return;
+  var n=_partesFotos.length;
+  if(n<=1){ box.innerHTML=""; return; }
+  var html='<p class="dica" style="margin-top:10px;color:#c0392b"><b>As fotos passaram do limite do WhatsApp e foram divididas em '+n+' partes.</b> Envie <b>TODAS as '+n+'</b>, uma de cada vez — toque cada botão e mande no WhatsApp:</p>';
+  _partesFotos.forEach(function(p,i){
+    html+='<button class="btn '+(p.enviado?"btn-linha":"btn-primario")+'" style="margin-top:8px" onclick="enviarParteFoto('+i+')">'+(p.enviado?"✓ ":"📤 ")+"Enviar parte "+(i+1)+" de "+n+" (~"+p.mb+" MB)</button>";
+  });
+  var faltam=_partesFotos.filter(function(x){return !x.enviado;}).length;
+  html+='<p class="dica" style="margin-top:8px">'+(faltam?("Ainda falta(m) "+faltam+" parte(s)."):"Todas as partes enviadas ✓")+'</p>';
+  box.innerHTML=html;
+}
+function enviarParteFoto(i){
+  var p=_partesFotos[i]; if(!p) return;
+  var done=function(){ p.enviado=true; renderPartesFotos();
+    if(_partesFotos.length>1 && _partesFotos.every(function(x){return x.enviado;})) toast("Todas as partes enviadas ✓"); };
+  try{
+    if(navigator.canShare && navigator.canShare({files:[p.file]})){
+      navigator.share({files:[p.file],title:p.name}).then(done, function(e){
+        if(e && e.name==="AbortError") return;      // usuário cancelou — deixa reenviar
+        baixaFoto(p.file,p.name); done();           // falha real -> baixa nos downloads
+      });
+      return;
+    }
+  }catch(e){}
+  baixaFoto(p.file,p.name); done();                 // sem compartilhamento -> baixa
 }
 
 /* ====== Navegação interna ====== */
