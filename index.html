@@ -348,11 +348,18 @@ async function aplicarFechadas(cod){
   var it=manifest.find(function(x){return x.codigo===cod;}); if(!it) return;
   var url=it.arquivo.replace(/\.json$/i,".fechadas.json");
   var fech=null;
-  try{ var r=await fetch(url+"?ts="+Date.now()); if(r.ok) fech=await r.json(); }catch(e){}
+  try{ var r=await fetch(url+"?ts="+Date.now());
+    if(r.ok){ fech=await r.json(); }
+    else if(r.status===404){ fech={}; }   // arquivo removido de propósito -> destrava tudo da rodovia
+    else return;                           // erro temporário do servidor -> não mexe
+  }catch(e){ return; }                     // offline -> mantém o que já estava
   if(!fech||typeof fech!=="object") return;
   var mudou=false;
+  // aplica as travas publicadas
   Object.keys(fech).forEach(function(k){ var i=parseInt(k,10); var med=fech[k]; var p=placas[i];
     if(p && (p.fechada!==med || p.status!=="medida")){ p.status="medida"; p.fechada=med; mudou=true; } });
+  // DESTRAVA: placa que estava travada mas saiu do arquivo publicado volta a editável/pendente
+  placas.forEach(function(p,i){ if(p && p.fechada!=null && !Object.prototype.hasOwnProperty.call(fech,String(i))){ p.fechada=null; p.status="pendente"; mudou=true; } });
   if(mudou) persist();
 }
 function persist(){ if(DB&&rodAtual) idbPut("trab",rodAtual,placas); }
